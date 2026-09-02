@@ -25,6 +25,19 @@ live sensor readings are coming in the next update.
 - A modern smartphone browser (Android Chrome or iOS Safari recommended).
 - Motion & orientation sensor permission, when prompted (required on iOS).
 
+## Development
+
+This is a plain HTML/CSS/JS static app — no build step, no bundler, no
+npm dependencies of any kind. Open `index.html` with any static file
+server (e.g. `npx serve .` or Python's `http.server`) and it runs as-is.
+
+Unit tests for the pure orientation-math module use Node's built-in test
+runner directly, with no dependency manifest required:
+
+```
+node --test tests/
+```
+
 ## Privacy
 
 This app runs entirely in your browser. It does not collect data, does not
