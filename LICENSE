@@ -1,0 +1,27 @@
+Copyright (c) 2026 Luca Guareschi. All Rights Reserved.
+
+This repository and all of its contents (including but not limited to source
+code, markup, stylesheets, scripts, and documentation) are proprietary and
+confidential. No license, express or implied, to any intellectual property
+rights is granted by this document except as explicitly stated below.
+
+PERMITTED:
+- Accessing and using the application as hosted and published by the
+  copyright holder (e.g., via GitHub Pages) for personal, non-commercial
+  purposes.
+- Viewing the source code within this repository on GitHub for reference
+  and educational purposes.
+
+NOT PERMITTED without prior written consent from the copyright holder:
+- Copying, forking for redistribution, modifying, merging, publishing,
+  distributing, sublicensing, and/or selling copies of the source code.
+- Deploying, hosting, or redistributing this software, in whole or in part,
+  on any other domain, service, or product.
+- Reverse engineering, decompiling, or creating derivative works based on
+  this software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE
+USE OF THE SOFTWARE.
