@@ -32,10 +32,11 @@ npm dependencies of any kind. Open `index.html` with any static file
 server (e.g. `npx serve .` or Python's `http.server`) and it runs as-is.
 
 Unit tests for the pure orientation-math module use Node's built-in test
-runner directly, with no dependency manifest required:
+runner directly, with no dependency manifest required. Run from the repo
+root:
 
 ```
-node --test tests/
+node --test
 ```
 
 ## Privacy
