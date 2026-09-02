@@ -9,17 +9,9 @@ desktop.ini
 *.swp
 *.swo
 
-# Node (test runner / future tooling)
-node_modules/
-npm-debug.log*
-
 # Logs
 *.log
 
-# Local env files (not used by this static app, but ignored defensively)
+# Local env files (not used by this static app, ignored defensively)
 .env
 .env.local
-
-# Build/output artifacts (none expected for this static app, ignored defensively)
-dist/
-build/

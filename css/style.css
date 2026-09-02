@@ -1,0 +1,218 @@
+/*
+  TV Leveler — custom styling layer on top of Bootstrap 5.3.3.
+
+  Design intent: a full-screen precision instrument, not a marketing page.
+  Numeric readouts use a geometric display face with tabular figures so
+  digits don't jitter horizontally as values change in real time.
+*/
+
+:root {
+  --tvl-accent: #4C8DFF;       /* precision blue — primary actions */
+  --tvl-good: #34D399;         /* on-target green — near-zero axis */
+  --tvl-warn: #F5A524;         /* magnetic interference / caution */
+  --tvl-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --tvl-font-body: 'Inter', system-ui, sans-serif;
+}
+
+[data-bs-theme="dark"] {
+  --tvl-surface: #12161C;
+  --tvl-surface-raised: #1B212B;
+  --tvl-border: #2A313D;
+}
+
+[data-bs-theme="light"] {
+  --tvl-surface: #F4F6F9;
+  --tvl-surface-raised: #FFFFFF;
+  --tvl-border: #D9DEE6;
+}
+
+html, body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--tvl-font-body);
+  background-color: var(--tvl-surface);
+}
+
+.app-shell {
+  min-height: 100dvh;
+  background-color: var(--tvl-surface);
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  border-bottom: 1px solid var(--tvl-border);
+  background-color: var(--tvl-surface-raised);
+  flex: 0 0 auto;
+}
+
+.app-title {
+  font-family: var(--tvl-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--tvl-border);
+  background: transparent;
+  color: var(--bs-body-color);
+}
+
+.btn-icon:hover,
+.btn-icon:focus-visible {
+  background-color: var(--tvl-surface);
+}
+
+.status-badge {
+  font-family: var(--tvl-font-body);
+  font-weight: 500;
+  font-size: 0.72rem;
+  padding: 0.35em 0.65em;
+  border-radius: 999px;
+  color: var(--bs-body-color);
+  background-color: var(--tvl-border);
+}
+
+.status-badge[data-status="ok"] {
+  background-color: color-mix(in srgb, var(--tvl-good) 22%, transparent);
+  color: var(--tvl-good);
+}
+
+.status-badge[data-status="missing"],
+.status-badge[data-status="unsupported"] {
+  background-color: color-mix(in srgb, var(--bs-danger) 22%, transparent);
+  color: var(--bs-danger);
+}
+
+.status-badge[data-status="permission-required"] {
+  background-color: color-mix(in srgb, var(--tvl-warn) 25%, transparent);
+  color: var(--tvl-warn);
+}
+
+/* ---------- Permission / unsupported states ---------- */
+
+.permission-prompt {
+  display: flex;
+}
+
+/* ---------- Readout view ---------- */
+
+.readout-view {
+  display: flex;
+}
+
+.mode-label {
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+  text-transform: none;
+}
+
+.axes-grid {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+@media (min-width: 700px) {
+  .axes-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr;
+  }
+}
+
+.axis-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background-color: var(--tvl-surface-raised);
+  border: 1px solid var(--tvl-border);
+  border-radius: 1.25rem;
+  padding: 1rem;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.axis-card.is-near-zero {
+  border-color: var(--tvl-good);
+  background-color: color-mix(in srgb, var(--tvl-good) 10%, var(--tvl-surface-raised));
+}
+
+.axis-name {
+  font-family: var(--tvl-font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+}
+
+.axis-value {
+  font-family: var(--tvl-font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 10vw, 4rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--bs-body-color);
+}
+
+.axis-card.is-near-zero .axis-value {
+  color: var(--tvl-good);
+}
+
+.level-badge {
+  font-family: var(--tvl-font-display);
+  font-weight: 700;
+  color: var(--tvl-good);
+}
+
+.action-bar {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--tvl-border);
+  background-color: var(--tvl-surface-raised);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--tvl-accent);
+  --bs-btn-border-color: var(--tvl-accent);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--tvl-accent) 85%, black);
+  --bs-btn-hover-border-color: color-mix(in srgb, var(--tvl-accent) 85%, black);
+}
+
+/* ---------- Help content (rendered Markdown) ---------- */
+
+.help-content h1,
+.help-content h2,
+.help-content h3 {
+  font-family: var(--tvl-font-display);
+}
+
+.help-content pre {
+  background-color: var(--tvl-surface);
+  border: 1px solid var(--tvl-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+.help-content code {
+  font-size: 0.85em;
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .axis-card {
+    transition: none;
+  }
+}
