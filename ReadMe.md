@@ -1,5 +1,7 @@
 # TV Leveler
 
+[![Test](https://github.com/guareschiluca/tv-leveler/actions/workflows/test.yml/badge.svg)](https://github.com/guareschiluca/tv-leveler/actions/workflows/test.yml)
+
 A small browser tool that helps you hang a wall-mounted TV perfectly level,
 using the orientation sensors already built into your smartphone.
 
