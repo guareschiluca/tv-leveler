@@ -2,17 +2,18 @@
  * main.js
  * Application entry point.
  *
- * Scaffold stage responsibilities (this file, for now):
- *  - Initialize theme (system preference, manual override, no persistence
- *    per the app's no-storage privacy stance — see ReadMe.md §Privacy).
- *  - Wire the Help modal open/close affordance.
+ *  - Initializes theme (system preference, manual override, no
+ *    persistence per the app's no-storage privacy stance).
+ *  - Wires the Help modal open/close affordance.
+ *  - Initializes the live sensor readout (js/uiController.js), which in
+ *    turn wires js/sensors.js + js/orientationMath.js to the DOM.
  *
- * Sensor reading, orientation math, and the live readout UI are added in
- * subsequent modules (js/orientationMath.js, js/sensors.js,
- * js/uiController.js) and wired in here once available.
+ * The Help modal's content (fetched/rendered from ReadMe.md) lands in a
+ * later module (js/helpPage.js).
  */
 
 import { initTheme, toggleTheme } from './theme.js';
+import { initUiController } from './uiController.js';
 
 function initHelpModal() {
   const helpBtn = document.getElementById('helpBtn');
@@ -30,6 +31,7 @@ function init() {
   themeToggleBtn?.addEventListener('click', toggleTheme);
 
   initHelpModal();
+  initUiController();
 }
 
 document.addEventListener('DOMContentLoaded', init);

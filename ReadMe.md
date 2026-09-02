@@ -17,8 +17,9 @@ user-facing and free of internal implementation notes.)*
 
 ## Status
 
-🚧 Under active development. The app shell, theme, and layout are in place;
-live sensor readings are coming in the next update.
+🚧 Under active development. Live sensor readout, reference capture, and
+delta display are working. The in-app Help page and PWA installation are
+still coming.
 
 ## Requirements
 
