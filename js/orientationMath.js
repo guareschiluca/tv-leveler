@@ -42,6 +42,16 @@ export function angleDifference(a, b) {
 /**
  * Computes the delta orientation of `current` relative to `reference`,
  * i.e. `current - reference` per axis, normalized to [-180, 180).
+ *
+ * CAUTION: this subtracts each axis independently, which breaks down
+ * near pitch = +-90 degrees (a gimbal-lock configuration where roll and
+ * yaw readings become coupled and can jump by up to ~180 degrees for a
+ * tiny real rotation). For comparing two live sensor readings — where
+ * the absolute orientation could be anywhere, including right at that
+ * singularity — use computeRelativeOrientation() from
+ * js/quaternionMath.js instead, which is immune to this. This function
+ * remains correct and useful for simple, known-away-from-singularity
+ * cases (e.g. comparing two hand-authored orientations in a test).
  * @param {Orientation} current
  * @param {Orientation} reference
  * @returns {Orientation}

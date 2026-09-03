@@ -28,6 +28,14 @@ user-facing and free of internal implementation notes.)*
 delta display are working. The in-app Help page and PWA installation are
 still coming.
 
+**Recent fix:** relative orientation is now computed with quaternions
+instead of subtracting roll/pitch/yaw independently. The old approach
+could misreport a ~1-2 degree real difference as ~179 degrees whenever
+the phone was held near-vertical (e.g. flat against a wall or TV) — a
+classic Euler-angle gimbal-lock artifact. Absolute readings are
+unaffected; only the "how far off level" delta was wrong, and only in
+that near-vertical range.
+
 ## Requirements
 
 - A modern smartphone browser (Android Chrome or iOS Safari recommended).
