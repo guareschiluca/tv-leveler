@@ -19,6 +19,7 @@ import {
   quaternionConjugate,
   quaternionNormalize,
   quaternionSlerp,
+  angularDistanceDeg,
 } from './quaternionMath.js';
 import {
   SensorStatus,
@@ -29,8 +30,17 @@ import {
   getStatus,
 } from './sensors.js';
 
-const SMOOTHING_ALPHA = 0.2; // low-pass filter strength for jitter reduction
+const SMOOTHING_ALPHA = 0.12; // low-pass filter strength for jitter reduction
 const NEAR_ZERO_THRESHOLD_DEG = 0.5;
+
+// A reading counts as "settled" once the smoothed orientation stays
+// within this many degrees of the raw, incoming orientation for
+// STABLE_STREAK_REQUIRED consecutive frames. Raw sensor data (especially
+// the compass-derived yaw axis) is genuinely noisy, and capturing a
+// reference while it's still catching up from recent motion bakes that
+// noise into every later comparison — this is what the gate prevents.
+const STABILITY_THRESHOLD_DEG = 1.0;
+const STABLE_STREAK_REQUIRED = 15; // ~250ms at 60Hz
 
 const STATUS_LABELS = {
   [SensorStatus.OK]: 'Sensors: OK',
@@ -52,6 +62,8 @@ export function initUiController() {
   let unsubscribe = null;
   let frameScheduled = false;
   let latestForRender = null;
+  let stableStreak = 0;
+  let isStable = false;
 
   function currentStatus() {
     return getStatus({ permissionState });
@@ -107,12 +119,25 @@ export function initUiController() {
       ? quaternionSlerp(smoothedQuaternion, rawQuaternion, SMOOTHING_ALPHA)
       : rawQuaternion;
 
+    const settlingGap = angularDistanceDeg(smoothedQuaternion, rawQuaternion);
+    stableStreak = settlingGap <= STABILITY_THRESHOLD_DEG ? stableStreak + 1 : 0;
+    isStable = stableStreak >= STABLE_STREAK_REQUIRED;
+    updateStabilityUi();
+
     const displayOrientation = referenceQuaternion
       ? relativeOrientation(smoothedQuaternion, referenceQuaternion)
       : quaternionToEuler(smoothedQuaternion);
 
     latestForRender = displayOrientation;
     scheduleFrame();
+  }
+
+  function updateStabilityUi() {
+    dom.setReferenceBtn.disabled = !isStable;
+    dom.setReferenceBtn.title = isStable
+      ? ''
+      : 'Hold the device steady for a moment before capturing the reference';
+    dom.stabilityHint.classList.toggle('d-none', isStable);
   }
 
   function scheduleFrame() {
@@ -147,7 +172,7 @@ export function initUiController() {
   }
 
   function setReference() {
-    if (!smoothedQuaternion) return; // no reading yet, nothing to capture
+    if (!smoothedQuaternion || !isStable) return; // no reading yet, or still settling
     referenceQuaternion = smoothedQuaternion;
     dom.resetReferenceBtn.classList.remove('d-none');
   }
@@ -167,6 +192,7 @@ export function initUiController() {
   dom.requestPermissionBtn.addEventListener('click', handleRequestPermission);
   dom.setReferenceBtn.addEventListener('click', setReference);
   dom.resetReferenceBtn.addEventListener('click', resetReference);
+  dom.setReferenceBtn.disabled = true; // enabled once the first reading settles
 
   // Permission state starts 'unknown' on platforms that require a
   // request; browsers that don't require one report OK immediately.
@@ -211,5 +237,6 @@ function queryDom() {
     levelBadge: document.getElementById('levelBadge'),
     setReferenceBtn: document.getElementById('setReferenceBtn'),
     resetReferenceBtn: document.getElementById('resetReferenceBtn'),
+    stabilityHint: document.getElementById('stabilityHint'),
   };
 }

@@ -118,6 +118,11 @@ body {
   text-transform: none;
 }
 
+.stability-hint {
+  font-size: 0.85rem;
+  color: var(--tvl-warn);
+}
+
 .axes-grid {
   display: grid;
   grid-template-rows: repeat(3, 1fr);

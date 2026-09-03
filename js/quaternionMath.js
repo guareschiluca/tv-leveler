@@ -194,6 +194,32 @@ export function computeRelativeOrientation(current, reference) {
   return quaternionToEuler(relativeQ);
 }
 
+/**
+ * Total rotation angle represented by a unit quaternion, in degrees
+ * (0-180). Takes |w| so a quaternion and its negation (the same
+ * rotation) both yield the same, non-negative angle.
+ * @param {Quaternion} q
+ * @returns {number}
+ */
+export function rotationAngleDeg(q) {
+  const w = clamp(Math.abs(q.w), -1, 1);
+  return 2 * Math.acos(w) * RAD_TO_DEG;
+}
+
+/**
+ * Angular distance between two orientations, as a single scalar in
+ * degrees — "how far apart are these two 3D orientations", independent
+ * of any roll/pitch/yaw decomposition (so it has no singularity of its
+ * own). Used to detect whether a reading has settled.
+ * @param {Quaternion} a
+ * @param {Quaternion} b
+ * @returns {number}
+ */
+export function angularDistanceDeg(a, b) {
+  const relative = quaternionNormalize(quaternionMultiply(a, quaternionConjugate(b)));
+  return rotationAngleDeg(relative);
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }

@@ -18,6 +18,8 @@ import {
   quaternionConjugate,
   quaternionNormalize,
   quaternionSlerp,
+  rotationAngleDeg,
+  angularDistanceDeg,
   computeRelativeOrientation,
 } from '../js/quaternionMath.js';
 
@@ -114,4 +116,30 @@ test('computeRelativeOrientation regression: near pitch=+-90, a small true rotat
   assert.ok(Math.abs(delta.roll) < 5, `roll delta too large: ${delta.roll}`);
   assert.ok(Math.abs(delta.pitch) < 5, `pitch delta too large: ${delta.pitch}`);
   assert.ok(Math.abs(delta.yaw) < 5, `yaw delta too large: ${delta.yaw}`);
+});
+
+test('rotationAngleDeg is 0 for the identity quaternion', () => {
+  assert.equal(rotationAngleDeg({ w: 1, x: 0, y: 0, z: 0 }), 0);
+});
+
+test('rotationAngleDeg matches the source angle for a simple single-axis rotation', () => {
+  const q = eulerToQuaternion({ roll: 90, pitch: 0, yaw: 0 });
+  assert.ok(Math.abs(rotationAngleDeg(q) - 90) < 1e-9);
+});
+
+test('rotationAngleDeg treats a quaternion and its negation as the same rotation', () => {
+  const q = eulerToQuaternion({ roll: 30, pitch: 0, yaw: 0 });
+  const negated = { w: -q.w, x: -q.x, y: -q.y, z: -q.z };
+  assert.ok(Math.abs(rotationAngleDeg(q) - rotationAngleDeg(negated)) < 1e-9);
+});
+
+test('angularDistanceDeg is 0 between an orientation and itself', () => {
+  const q = eulerToQuaternion({ roll: 12, pitch: -34, yaw: 200 });
+  assert.ok(Math.abs(angularDistanceDeg(q, q)) < 1e-9);
+});
+
+test('angularDistanceDeg is symmetric', () => {
+  const a = eulerToQuaternion({ roll: 10, pitch: 5, yaw: 0 });
+  const b = eulerToQuaternion({ roll: 0, pitch: 0, yaw: 40 });
+  assert.ok(Math.abs(angularDistanceDeg(a, b) - angularDistanceDeg(b, a)) < 1e-9);
 });

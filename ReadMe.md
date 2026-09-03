@@ -17,10 +17,24 @@ user-facing and free of internal implementation notes.)*
 ## How it works
 
 1. Place your phone flat against the wall, next to where the TV will hang.
-2. Tap **Set Reference Orientation** to record the wall's angle.
+2. Tap **Set Reference Orientation** to record the wall's angle. The
+   button is disabled for a moment while the reading settles — hold the
+   device still until it enables.
 3. Place the phone against the back of the TV.
 4. Adjust the TV until Roll and Yaw read close to zero. Pitch is up to you
    (a slight forward or backward tilt is often intentional).
+
+## Getting an accurate reading
+
+Phone orientation sensors, especially the compass feeding the yaw axis,
+can be noisy or drift near large metal objects (structural steel, pipes,
+appliances, rebar in floors/walls). For the most accurate reading:
+
+- Hold the phone still for a second before capturing the reference — the
+  **Set Reference Orientation** button won't be clickable until the
+  reading has settled, precisely to avoid capturing a noisy value.
+- If readings seem consistently off in the same spot, try moving a few
+  inches from any large metal fixtures nearby.
 
 ## Status
 
@@ -28,13 +42,18 @@ user-facing and free of internal implementation notes.)*
 delta display are working. The in-app Help page and PWA installation are
 still coming.
 
-**Recent fix:** relative orientation is now computed with quaternions
-instead of subtracting roll/pitch/yaw independently. The old approach
-could misreport a ~1-2 degree real difference as ~179 degrees whenever
-the phone was held near-vertical (e.g. flat against a wall or TV) — a
-classic Euler-angle gimbal-lock artifact. Absolute readings are
-unaffected; only the "how far off level" delta was wrong, and only in
-that near-vertical range.
+**Recent fixes:**
+- Relative orientation is now computed with quaternions instead of
+  subtracting roll/pitch/yaw independently. The old approach could
+  misreport a ~1-2 degree real difference as ~179 degrees whenever the
+  phone was held near-vertical (e.g. flat against a wall or TV) — a
+  classic Euler-angle gimbal-lock artifact. Absolute readings were
+  unaffected; only the "how far off level" delta was wrong, and only in
+  that near-vertical range.
+- Reference capture is now gated on reading stability: raw sensor data
+  can still be settling for a moment after you place the phone down, and
+  capturing a reference mid-settle used to bake that noise into every
+  later comparison.
 
 ## Requirements
 
