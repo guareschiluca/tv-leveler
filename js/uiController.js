@@ -1,15 +1,25 @@
 /**
  * uiController.js
- * Wires js/sensors.js + js/orientationMath.js to the DOM described in
- * index.html. This is the only module that touches the readout markup.
+ * Wires js/sensors.js + js/orientationMath.js + js/quaternionMath.js to
+ * the DOM described in index.html. This is the only module that touches
+ * the readout markup.
+ *
+ * Orientation is tracked internally as a quaternion (not as independent
+ * roll/pitch/yaw numbers) precisely to avoid the Euler-angle gimbal-lock
+ * problem near pitch = +-90 degrees — see js/quaternionMath.js for the
+ * full explanation. Plain {roll, pitch, yaw} numbers only exist at the
+ * very last step, for display.
  */
 
+import { isNearZero, isLevel } from './orientationMath.js';
 import {
-  isNearZero,
-  isLevel,
-  computeDelta,
-  smoothOrientation,
-} from './orientationMath.js';
+  eulerToQuaternion,
+  quaternionToEuler,
+  quaternionMultiply,
+  quaternionConjugate,
+  quaternionNormalize,
+  quaternionSlerp,
+} from './quaternionMath.js';
 import {
   SensorStatus,
   isOrientationSupported,
@@ -37,8 +47,8 @@ export function initUiController() {
 
   /** @type {'unknown'|'granted'|'denied'} */
   let permissionState = 'unknown';
-  let referenceOrientation = null;
-  let smoothed = null; // {roll, pitch, yaw} — null until first sensor reading
+  let referenceQuaternion = null;
+  let smoothedQuaternion = null; // null until the first sensor reading
   let unsubscribe = null;
   let frameScheduled = false;
   let latestForRender = null;
@@ -92,11 +102,14 @@ export function initUiController() {
   }
 
   function handleRawOrientation(raw) {
-    smoothed = smoothed ? smoothOrientation(smoothed, raw, SMOOTHING_ALPHA) : raw;
+    const rawQuaternion = eulerToQuaternion(raw);
+    smoothedQuaternion = smoothedQuaternion
+      ? quaternionSlerp(smoothedQuaternion, rawQuaternion, SMOOTHING_ALPHA)
+      : rawQuaternion;
 
-    const displayOrientation = referenceOrientation
-      ? computeDelta(smoothed, referenceOrientation)
-      : smoothed;
+    const displayOrientation = referenceQuaternion
+      ? relativeOrientation(smoothedQuaternion, referenceQuaternion)
+      : quaternionToEuler(smoothedQuaternion);
 
     latestForRender = displayOrientation;
     scheduleFrame();
@@ -116,7 +129,7 @@ export function initUiController() {
     setAxisValue(dom.pitchValue, dom.pitchCard, orientation.pitch);
     setAxisValue(dom.yawValue, dom.yawCard, orientation.yaw);
 
-    const hasReference = referenceOrientation !== null;
+    const hasReference = referenceQuaternion !== null;
     dom.modeLabel.textContent = hasReference
       ? 'Relative orientation (Δ from reference)'
       : 'Absolute orientation';
@@ -134,13 +147,13 @@ export function initUiController() {
   }
 
   function setReference() {
-    if (!smoothed) return; // no reading yet, nothing to capture
-    referenceOrientation = { ...smoothed };
+    if (!smoothedQuaternion) return; // no reading yet, nothing to capture
+    referenceQuaternion = smoothedQuaternion;
     dom.resetReferenceBtn.classList.remove('d-none');
   }
 
   function resetReference() {
-    referenceOrientation = null;
+    referenceQuaternion = null;
     dom.resetReferenceBtn.classList.add('d-none');
     dom.levelBadge.classList.add('d-none');
   }
@@ -165,6 +178,18 @@ export function initUiController() {
     permissionState = 'granted'; // no explicit grant needed on this platform
   }
   render();
+}
+
+/**
+ * Relative orientation of `current` with respect to `reference`, both
+ * already-computed quaternions (avoids re-deriving them from Euler
+ * angles on every animation frame).
+ */
+function relativeOrientation(currentQuaternion, referenceQuaternion) {
+  const relative = quaternionNormalize(
+    quaternionMultiply(currentQuaternion, quaternionConjugate(referenceQuaternion)),
+  );
+  return quaternionToEuler(relative);
 }
 
 function queryDom() {
