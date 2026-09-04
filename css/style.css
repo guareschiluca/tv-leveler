@@ -118,11 +118,6 @@ body {
   text-transform: none;
 }
 
-.stability-hint {
-  font-size: 0.85rem;
-  color: var(--tvl-warn);
-}
-
 .axes-grid {
   display: grid;
   grid-template-rows: repeat(3, 1fr);
@@ -192,6 +187,19 @@ body {
   --bs-btn-border-color: var(--tvl-accent);
   --bs-btn-hover-bg: color-mix(in srgb, var(--tvl-accent) 85%, black);
   --bs-btn-hover-border-color: color-mix(in srgb, var(--tvl-accent) 85%, black);
+}
+
+/*
+  Bootstrap's default :disabled state is just ~65% opacity on the same
+  accent color — too subtle to read at a glance on a touch device (no
+  hover/cursor feedback to reinforce it). Force a distinctly muted,
+  full-opacity look instead, so "not ready yet" is unambiguous.
+*/
+#setReferenceBtn.is-settling {
+  --bs-btn-disabled-bg: var(--tvl-border);
+  --bs-btn-disabled-border-color: var(--tvl-border);
+  --bs-btn-disabled-color: var(--bs-secondary-color);
+  --bs-btn-disabled-opacity: 1;
 }
 
 /* ---------- Help content (rendered Markdown) ---------- */

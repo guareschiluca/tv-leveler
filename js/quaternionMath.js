@@ -220,6 +220,28 @@ export function angularDistanceDeg(a, b) {
   return rotationAngleDeg(relative);
 }
 
+/**
+ * Maximum pairwise angular distance (degrees) across a set of
+ * quaternions — how "spread out" a short history of readings is. Used
+ * to detect whether an already-smoothed signal has settled: unlike
+ * comparing a smoothed value against noisy raw input (which never
+ * converges, since raw sensor noise never fully disappears), checking
+ * the smoothed signal's own spread over a short recent window
+ * correctly reflects whether the *filtered* trend has stopped moving.
+ * @param {Quaternion[]} quaternions
+ * @returns {number} 0 for fewer than 2 samples
+ */
+export function maxAngularSpreadDeg(quaternions) {
+  let max = 0;
+  for (let i = 0; i < quaternions.length; i++) {
+    for (let j = i + 1; j < quaternions.length; j++) {
+      const d = angularDistanceDeg(quaternions[i], quaternions[j]);
+      if (d > max) max = d;
+    }
+  }
+  return max;
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }

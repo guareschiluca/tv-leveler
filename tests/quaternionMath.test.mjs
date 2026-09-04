@@ -20,6 +20,7 @@ import {
   quaternionSlerp,
   rotationAngleDeg,
   angularDistanceDeg,
+  maxAngularSpreadDeg,
   computeRelativeOrientation,
 } from '../js/quaternionMath.js';
 
@@ -142,4 +143,24 @@ test('angularDistanceDeg is symmetric', () => {
   const a = eulerToQuaternion({ roll: 10, pitch: 5, yaw: 0 });
   const b = eulerToQuaternion({ roll: 0, pitch: 0, yaw: 40 });
   assert.ok(Math.abs(angularDistanceDeg(a, b) - angularDistanceDeg(b, a)) < 1e-9);
+});
+
+test('maxAngularSpreadDeg is 0 for fewer than 2 samples', () => {
+  assert.equal(maxAngularSpreadDeg([]), 0);
+  assert.equal(maxAngularSpreadDeg([eulerToQuaternion({ roll: 5, pitch: 0, yaw: 0 })]), 0);
+});
+
+test('maxAngularSpreadDeg is 0 when all samples are identical', () => {
+  const q = eulerToQuaternion({ roll: 12, pitch: -8, yaw: 44 });
+  assert.equal(maxAngularSpreadDeg([q, q, q]), 0);
+});
+
+test('maxAngularSpreadDeg finds the largest pairwise distance, not just adjacent pairs', () => {
+  const samples = [
+    eulerToQuaternion({ roll: 0, pitch: 0, yaw: 0 }),
+    eulerToQuaternion({ roll: 2, pitch: 0, yaw: 0 }),
+    eulerToQuaternion({ roll: 20, pitch: 0, yaw: 0 }), // outlier in the middle
+    eulerToQuaternion({ roll: 3, pitch: 0, yaw: 0 }),
+  ];
+  assert.ok(Math.abs(maxAngularSpreadDeg(samples) - 20) < 1e-9);
 });
