@@ -26,15 +26,18 @@ user-facing and free of internal implementation notes.)*
 
 ## Getting an accurate reading
 
-Phone orientation sensors, especially the compass feeding the yaw axis,
-can be noisy or drift near large metal objects (structural steel, pipes,
-appliances, rebar in floors/walls). For the most accurate reading:
+On most devices this app uses a sensor that never touches the compass, so
+magnetic interference isn't a concern. If your device only supports the
+fallback sensor (shown in the status badge as "Absolute Orientation
+Sensor"), the yaw axis does rely on the compass and can be noisy or
+drift near large metal objects (structural steel, pipes, appliances,
+rebar in floors/walls). Either way:
 
 - Hold the phone still for a second before capturing the reference — the
   **Set Reference Orientation** button won't be clickable until the
   reading has settled, precisely to avoid capturing a noisy value.
-- If readings seem consistently off in the same spot, try moving a few
-  inches from any large metal fixtures nearby.
+- If readings seem consistently off in the same spot on the fallback
+  sensor, try moving a few inches from any large metal fixtures nearby.
 
 ## Status
 
@@ -59,11 +62,27 @@ still coming.
   short recent window instead, which actually settles once the phone is
   still. The **Set Reference Orientation** button now clearly changes to
   "Hold Steady…" (not just a subtle dimming) while it isn't ready yet.
+- Switched from `DeviceOrientationEvent` (universal, but hands us
+  alpha/beta/gamma with no control over how they're fused) to the
+  Generic Sensor API. This app now prefers
+  `RelativeOrientationSensor` (gyroscope + accelerometer only) when
+  available, falling back to `AbsoluteOrientationSensor` (adds the
+  magnetometer back in) otherwise. The relative sensor structurally
+  excludes the magnetometer, so it can't be thrown off by nearby metal
+  (rebar, structural steel, appliances) the way a compass-based heading
+  can — a deliberate trade for **Android + Chrome only** support, since
+  this API has no Safari or Firefox implementation.
 
 ## Requirements
 
-- A modern smartphone browser (Android Chrome or iOS Safari recommended).
-- Motion & orientation sensor permission, when prompted (required on iOS).
+- **Android + Chrome (or another Chromium-based browser)**, on a phone with
+  the required motion sensors. This app deliberately does not support
+  iOS/Safari or Firefox — it relies on the Generic Sensor API
+  (`RelativeOrientationSensor` / `AbsoluteOrientationSensor`), which those
+  browsers don't implement. If you land here on an unsupported browser,
+  the app shows a QR code to open the same page on a supported device.
+- Motion & orientation sensor permission, granted via the browser's own
+  prompt the first time the app requests it.
 
 ## Development
 
