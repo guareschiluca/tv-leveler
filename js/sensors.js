@@ -1,120 +1,144 @@
 /**
  * sensors.js
- * Browser orientation sensor access, isolated from math and UI concerns.
+ * Orientation sensor access via the Generic Sensor API
+ * (RelativeOrientationSensor / AbsoluteOrientationSensor), isolated
+ * from math and UI concerns.
  *
- * Uses the widely-supported `DeviceOrientationEvent` (absolute variant
- * when available) rather than the still-patchy Generic Sensor API, per
- * the design doc's "use browser-provided fused orientation when
- * available" guidance. iOS 13+ requires an explicit, user-gesture-driven
- * permission request before events start firing.
+ * DELIBERATE SCOPE: Android + Chrome only. This app previously used
+ * DeviceOrientationEvent as a universal (including iOS Safari)
+ * fallback, but that API forces the browser to fuse gyroscope +
+ * accelerometer + magnetometer internally and hand us the result as
+ * alpha/beta/gamma, with no way to exclude the magnetometer when it's
+ * unreliable (e.g. near structural metal) and no way to get the OS's
+ * fusion result as a quaternion directly. The Generic Sensor API fixes
+ * both: it gives us a quaternion natively, and — critically —
+ * RelativeOrientationSensor fuses gyroscope + accelerometer *only*,
+ * structurally excluding the magnetometer rather than just trusting it
+ * less. That's the real fix for yaw reliability; DeviceOrientationEvent
+ * has no equivalent. The Generic Sensor API has no Safari or Firefox
+ * implementation, so supporting it means dropping iOS — a deliberate,
+ * agreed trade-off for this project, not an oversight.
  */
 
-import { normalizeAngle } from './orientationMath.js';
+/** @enum {string} */
+export const SensorKind = {
+  // Gyroscope + accelerometer only. No magnetometer, so it can't be
+  // disturbed by nearby metal — but yaw isn't tied to true north and
+  // will drift slowly over time (gyro integration). Preferred default:
+  // this app only ever needs a *relative* orientation (current vs a
+  // just-captured reference), never true compass heading.
+  RELATIVE: 'relative',
+  // Gyroscope + accelerometer + magnetometer, north-referenced.
+  // Subject to magnetic interference. Used as a fallback on devices
+  // that don't expose RelativeOrientationSensor.
+  ABSOLUTE: 'absolute',
+};
 
 /** @enum {string} */
 export const SensorStatus = {
   OK: 'ok',
-  MISSING: 'missing',
-  PERMISSION_REQUIRED: 'permission-required',
+  MISSING: 'missing', // permission denied
+  PERMISSION_REQUIRED: 'permission-required', // awaiting the browser's own permission prompt
   UNSUPPORTED: 'unsupported',
 };
 
-/**
- * Pure transform from a raw DeviceOrientationEvent-shaped object to this
- * app's {roll, pitch, yaw} model.
- *
- * Per the W3C spec, alpha/beta/gamma are defined as:
- *  - alpha: rotation around the Z axis, [0, 360) — compass heading → yaw
- *  - beta:  rotation around the X axis, [-180, 180] — front/back tilt → pitch
- *  - gamma: rotation around the Y axis, [-90, 90] — left/right tilt → roll
- *
- * @param {{alpha: number|null, beta: number|null, gamma: number|null}} event
- * @returns {{roll: number, pitch: number, yaw: number}}
- */
-export function mapDeviceOrientationEvent(event) {
-  return {
-    roll: normalizeAngle(event.gamma ?? 0),
-    pitch: normalizeAngle(event.beta ?? 0),
-    yaw: normalizeAngle(event.alpha ?? 0),
-  };
+function sensorClassFor(kind) {
+  if (typeof window === 'undefined') return undefined;
+  return kind === SensorKind.RELATIVE
+    ? window.RelativeOrientationSensor
+    : window.AbsoluteOrientationSensor;
 }
 
 /**
- * Whether this browser exposes DeviceOrientationEvent at all.
+ * Whether the given sensor kind's constructor exists in this browser.
+ * Does NOT indicate permission has been granted, or that the device
+ * physically has the required hardware — only that the API is present.
+ * @param {SensorKind[keyof SensorKind]} kind
  * @returns {boolean}
  */
-export function isOrientationSupported() {
-  return typeof window !== 'undefined' && 'DeviceOrientationEvent' in window;
+export function isKindSupported(kind) {
+  return sensorClassFor(kind) !== undefined;
 }
 
 /**
- * Whether an explicit permission request is required before orientation
- * events will fire (iOS 13+ Safari).
- * @returns {boolean}
+ * Best available sensor kind for this app's needs: RelativeOrientation-
+ * Sensor when available (immune to magnetic interference), falling back
+ * to AbsoluteOrientationSensor, or null if neither is supported.
+ * @returns {SensorKind[keyof SensorKind]|null}
  */
-export function needsPermissionRequest() {
-  return isOrientationSupported() &&
-    typeof window.DeviceOrientationEvent.requestPermission === 'function';
+export function preferredKind() {
+  if (isKindSupported(SensorKind.RELATIVE)) return SensorKind.RELATIVE;
+  if (isKindSupported(SensorKind.ABSOLUTE)) return SensorKind.ABSOLUTE;
+  return null;
 }
 
 /**
- * Requests motion & orientation permission. Must be called synchronously
- * from within a user gesture handler (e.g. a button click) on iOS.
- * @returns {Promise<'granted'|'denied'|'unsupported'>}
+ * Pure transform: the Generic Sensor API's `quaternion` reading (a
+ * 4-element array in [x, y, z, w] order, per the W3C Orientation Sensor
+ * spec) to this app's {w, x, y, z} object shape.
+ * @param {[number, number, number, number]} quaternionArray
+ * @returns {{w: number, x: number, y: number, z: number}}
  */
-export async function requestPermission() {
-  if (!needsPermissionRequest()) return 'unsupported';
+export function mapSensorQuaternion([x, y, z, w]) {
+  return { w, x, y, z };
+}
+
+/**
+ * Starts a sensor of the given kind and streams quaternion readings.
+ *
+ * Unlike DeviceOrientationEvent, the Generic Sensor API has no separate
+ * up-front permission request step — the browser shows its own native
+ * permission prompt the first time `sensor.start()` is called, similar
+ * to geolocation. `onStatusChange` reports PERMISSION_REQUIRED while
+ * that's pending, OK once real readings start arriving, MISSING if
+ * permission is denied, and UNSUPPORTED if the sensor can't be
+ * constructed at all (API absent, or, per spec, a SecurityError from a
+ * disallowed Permissions-Policy context).
+ *
+ * @param {SensorKind[keyof SensorKind]} kind
+ * @param {(quaternion: {w: number, x: number, y: number, z: number}) => void} callback
+ * @param {(status: SensorStatus[keyof SensorStatus]) => void} [onStatusChange]
+ * @returns {() => void} unsubscribe function; safe to call multiple times
+ */
+export function subscribe(kind, callback, onStatusChange) {
+  const SensorClass = sensorClassFor(kind);
+  if (!SensorClass) {
+    onStatusChange?.(SensorStatus.UNSUPPORTED);
+    return () => {};
+  }
+
+  let sensor;
   try {
-    const result = await window.DeviceOrientationEvent.requestPermission();
-    return result === 'granted' ? 'granted' : 'denied';
+    sensor = new SensorClass({ frequency: 60 });
   } catch {
-    return 'denied';
+    // e.g. SecurityError if disallowed by Permissions-Policy
+    onStatusChange?.(SensorStatus.UNSUPPORTED);
+    return () => {};
   }
-}
 
-/**
- * Subscribes to live orientation updates.
- *
- * Prefers the 'deviceorientationabsolute' event (world-referenced, mainly
- * Android Chrome) and falls back to 'deviceorientation' otherwise. Only
- * readings that report actual sensor data (`event.absolute` truthy, or a
- * non-null alpha) are forwarded, so stale/empty events don't produce a
- * misleading "zero" reading.
- *
- * @param {(orientation: {roll: number, pitch: number, yaw: number}) => void} callback
- * @returns {() => void} unsubscribe function
- */
-export function subscribe(callback) {
-  if (!isOrientationSupported()) return () => {};
-
-  const handler = (event) => {
-    if (event.alpha === null && event.beta === null && event.gamma === null) return;
-    callback(mapDeviceOrientationEvent(event));
+  const handleReading = () => {
+    callback(mapSensorQuaternion(sensor.quaternion));
+    onStatusChange?.(SensorStatus.OK);
   };
 
-  const eventName = 'ondeviceorientationabsolute' in window
-    ? 'deviceorientationabsolute'
-    : 'deviceorientation';
+  const handleError = (event) => {
+    onStatusChange?.(
+      event.error?.name === 'NotAllowedError' ? SensorStatus.MISSING : SensorStatus.UNSUPPORTED,
+    );
+  };
 
-  window.addEventListener(eventName, handler);
-  return () => window.removeEventListener(eventName, handler);
-}
+  sensor.addEventListener('reading', handleReading);
+  sensor.addEventListener('error', handleError);
 
-/**
- * Synchronously determines the current sensor status. `permissionState`
- * should be tracked by the caller (e.g. uiController) across the
- * requestPermission() flow, since the browser exposes no way to query
- * permission state ahead of a request on most platforms.
- *
- * @param {{permissionState?: 'unknown'|'granted'|'denied'}} [state]
- * @returns {SensorStatus[keyof SensorStatus]}
- */
-export function getStatus(state = {}) {
-  if (!isOrientationSupported()) return SensorStatus.UNSUPPORTED;
-  if (needsPermissionRequest() && state.permissionState !== 'granted') {
-    return state.permissionState === 'denied'
-      ? SensorStatus.MISSING
-      : SensorStatus.PERMISSION_REQUIRED;
-  }
-  return SensorStatus.OK;
+  onStatusChange?.(SensorStatus.PERMISSION_REQUIRED);
+  sensor.start();
+
+  let stopped = false;
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    sensor.removeEventListener('reading', handleReading);
+    sensor.removeEventListener('error', handleError);
+    sensor.stop();
+  };
 }

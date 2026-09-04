@@ -106,6 +106,17 @@ body {
   display: flex;
 }
 
+.unsupported-qr {
+  background-color: #ffffff;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  line-height: 0; /* avoid extra gap from the generated table's inline layout */
+}
+
+.unsupported-qr table {
+  margin: 0 auto;
+}
+
 /* ---------- Readout view ---------- */
 
 .readout-view {

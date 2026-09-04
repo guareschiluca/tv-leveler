@@ -9,11 +9,14 @@
  * problem near pitch = +-90 degrees — see js/quaternionMath.js for the
  * full explanation. Plain {roll, pitch, yaw} numbers only exist at the
  * very last step, for display.
+ *
+ * Sensor readings now arrive as quaternions directly from the Generic
+ * Sensor API (js/sensors.js) — no Euler-angle conversion needed on the
+ * way in, only on the way out for display.
  */
 
 import { isNearZero, isLevel } from './orientationMath.js';
 import {
-  eulerToQuaternion,
   quaternionToEuler,
   quaternionMultiply,
   quaternionConjugate,
@@ -22,13 +25,12 @@ import {
   maxAngularSpreadDeg,
 } from './quaternionMath.js';
 import {
+  SensorKind,
   SensorStatus,
-  isOrientationSupported,
-  needsPermissionRequest,
-  requestPermission,
+  preferredKind,
   subscribe,
-  getStatus,
 } from './sensors.js';
+import { renderUnsupportedQrCode } from './qrCode.js';
 
 const SMOOTHING_ALPHA = 0.12; // low-pass filter strength for jitter reduction
 const NEAR_ZERO_THRESHOLD_DEG = 0.5;
@@ -38,11 +40,10 @@ const NEAR_ZERO_THRESHOLD_DEG = 0.5;
 // STABILITY_WINDOW_MS is within STABILITY_THRESHOLD_DEG of every other
 // sample in that window. This deliberately checks the smoothed signal
 // against its own recent past, not against the incoming raw reading:
-// raw sensor data (especially the compass-derived yaw axis) is
-// genuinely noisy and never fully stops jittering, so comparing smoothed
-// to raw never reliably settles. The smoothed signal, on the other
-// hand, should actually flatten out once the phone stops moving — that
-// flattening is what this measures.
+// raw sensor data is genuinely noisy and never fully stops jittering,
+// so comparing smoothed to raw never reliably settles. The smoothed
+// signal, on the other hand, should actually flatten out once the
+// phone stops moving — that flattening is what this measures.
 const STABILITY_WINDOW_MS = 500;
 const STABILITY_THRESHOLD_DEG = 0.4;
 const SET_REFERENCE_LABEL = 'Set Reference Orientation';
@@ -55,14 +56,18 @@ const STATUS_LABELS = {
   [SensorStatus.UNSUPPORTED]: 'Sensors: unsupported',
 };
 
+const SENSOR_KIND_LABELS = {
+  [SensorKind.RELATIVE]: 'Relative Orientation Sensor',
+  [SensorKind.ABSOLUTE]: 'Absolute Orientation Sensor',
+};
+
 /**
  * Initializes the live readout UI. Safe to call once on page load.
  */
 export function initUiController() {
   const dom = queryDom();
 
-  /** @type {'unknown'|'granted'|'denied'} */
-  let permissionState = 'unknown';
+  let status = SensorStatus.UNSUPPORTED;
   let referenceQuaternion = null;
   let smoothedQuaternion = null; // null until the first sensor reading
   let unsubscribe = null;
@@ -71,13 +76,14 @@ export function initUiController() {
   let stabilityBuffer = []; // [{ t: DOMHighResTimeStamp, q: Quaternion }], newest last
   let isStable = false;
 
-  function currentStatus() {
-    return getStatus({ permissionState });
-  }
+  const kind = preferredKind(); // RELATIVE preferred over ABSOLUTE when both exist
 
-  function setStatusBadge(status) {
-    dom.sensorStatusBadge.dataset.status = status;
-    dom.sensorStatusBadge.textContent = STATUS_LABELS[status] ?? 'Sensors: unknown';
+  function setStatusBadge(nextStatus) {
+    dom.sensorStatusBadge.dataset.status = nextStatus;
+    const kindSuffix = nextStatus === SensorStatus.OK && kind
+      ? ` (${SENSOR_KIND_LABELS[kind]})`
+      : '';
+    dom.sensorStatusBadge.textContent = (STATUS_LABELS[nextStatus] ?? 'Sensors: unknown') + kindSuffix;
   }
 
   function showOnly(sectionToShow) {
@@ -87,13 +93,14 @@ export function initUiController() {
   }
 
   function render() {
-    const status = currentStatus();
     setStatusBadge(status);
 
     if (status === SensorStatus.UNSUPPORTED) {
-      dom.statusMessageTitle.textContent = "Orientation sensors aren't available on this browser/device.";
+      dom.statusMessageTitle.textContent =
+        "This browser/device doesn't support the orientation sensors this app needs (Android + Chrome required).";
       dom.statusMessageHint.classList.remove('d-none');
       showOnly(dom.unsupportedNotice);
+      renderUnsupportedQrCode(dom.unsupportedQr, window.location.href);
       return;
     }
 
@@ -101,6 +108,7 @@ export function initUiController() {
       dom.statusMessageTitle.textContent = 'Motion sensor permission was denied.';
       dom.statusMessageHint.classList.add('d-none');
       showOnly(dom.unsupportedNotice);
+      renderUnsupportedQrCode(dom.unsupportedQr, window.location.href);
       return;
     }
 
@@ -111,16 +119,19 @@ export function initUiController() {
 
     // SensorStatus.OK
     showOnly(dom.readoutView);
-    startSubscriptionIfNeeded();
   }
 
-  function startSubscriptionIfNeeded() {
-    if (unsubscribe) return;
-    unsubscribe = subscribe(handleRawOrientation);
+  function handleStatusChange(nextStatus) {
+    status = nextStatus;
+    render();
   }
 
-  function handleRawOrientation(raw) {
-    const rawQuaternion = eulerToQuaternion(raw);
+  function startSensors() {
+    if (unsubscribe || !kind) return;
+    unsubscribe = subscribe(kind, handleRawQuaternion, handleStatusChange);
+  }
+
+  function handleRawQuaternion(rawQuaternion) {
     smoothedQuaternion = smoothedQuaternion
       ? quaternionSlerp(smoothedQuaternion, rawQuaternion, SMOOTHING_ALPHA)
       : rawQuaternion;
@@ -201,29 +212,18 @@ export function initUiController() {
     dom.levelBadge.classList.add('d-none');
   }
 
-  async function handleRequestPermission() {
-    const result = await requestPermission();
-    permissionState = result === 'granted' ? 'granted' : 'denied';
-    render();
-  }
-
-  dom.requestPermissionBtn.addEventListener('click', handleRequestPermission);
+  dom.requestPermissionBtn.addEventListener('click', startSensors);
   dom.setReferenceBtn.addEventListener('click', setReference);
   dom.resetReferenceBtn.addEventListener('click', resetReference);
   dom.setReferenceBtn.disabled = true; // enabled once the first reading settles
   dom.setReferenceBtn.textContent = SETTLING_LABEL;
   dom.setReferenceBtn.classList.add('is-settling');
 
-  // Permission state starts 'unknown' on platforms that require a
-  // request; browsers that don't require one report OK immediately.
-  if (!isOrientationSupported()) {
-    render();
+  if (!kind) {
+    handleStatusChange(SensorStatus.UNSUPPORTED);
     return;
   }
-  if (!needsPermissionRequest()) {
-    permissionState = 'granted'; // no explicit grant needed on this platform
-  }
-  render();
+  handleStatusChange(SensorStatus.PERMISSION_REQUIRED);
 }
 
 /**
@@ -246,6 +246,7 @@ function queryDom() {
     unsupportedNotice: document.getElementById('unsupportedNotice'),
     statusMessageTitle: document.getElementById('statusMessageTitle'),
     statusMessageHint: document.getElementById('statusMessageHint'),
+    unsupportedQr: document.getElementById('unsupportedQr'),
     readoutView: document.getElementById('readoutView'),
     modeLabel: document.getElementById('modeLabel'),
     rollValue: document.getElementById('rollValue'),
