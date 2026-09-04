@@ -19,7 +19,7 @@ import {
   quaternionConjugate,
   quaternionNormalize,
   quaternionSlerp,
-  angularDistanceDeg,
+  maxAngularSpreadDeg,
 } from './quaternionMath.js';
 import {
   SensorStatus,
@@ -33,14 +33,20 @@ import {
 const SMOOTHING_ALPHA = 0.12; // low-pass filter strength for jitter reduction
 const NEAR_ZERO_THRESHOLD_DEG = 0.5;
 
-// A reading counts as "settled" once the smoothed orientation stays
-// within this many degrees of the raw, incoming orientation for
-// STABLE_STREAK_REQUIRED consecutive frames. Raw sensor data (especially
-// the compass-derived yaw axis) is genuinely noisy, and capturing a
-// reference while it's still catching up from recent motion bakes that
-// noise into every later comparison — this is what the gate prevents.
-const STABILITY_THRESHOLD_DEG = 1.0;
-const STABLE_STREAK_REQUIRED = 15; // ~250ms at 60Hz
+// A reading counts as "settled" once the *smoothed* orientation's own
+// recent history stops moving — i.e. every sample in the last
+// STABILITY_WINDOW_MS is within STABILITY_THRESHOLD_DEG of every other
+// sample in that window. This deliberately checks the smoothed signal
+// against its own recent past, not against the incoming raw reading:
+// raw sensor data (especially the compass-derived yaw axis) is
+// genuinely noisy and never fully stops jittering, so comparing smoothed
+// to raw never reliably settles. The smoothed signal, on the other
+// hand, should actually flatten out once the phone stops moving — that
+// flattening is what this measures.
+const STABILITY_WINDOW_MS = 500;
+const STABILITY_THRESHOLD_DEG = 0.4;
+const SET_REFERENCE_LABEL = 'Set Reference Orientation';
+const SETTLING_LABEL = 'Hold Steady…';
 
 const STATUS_LABELS = {
   [SensorStatus.OK]: 'Sensors: OK',
@@ -62,7 +68,7 @@ export function initUiController() {
   let unsubscribe = null;
   let frameScheduled = false;
   let latestForRender = null;
-  let stableStreak = 0;
+  let stabilityBuffer = []; // [{ t: DOMHighResTimeStamp, q: Quaternion }], newest last
   let isStable = false;
 
   function currentStatus() {
@@ -119,9 +125,7 @@ export function initUiController() {
       ? quaternionSlerp(smoothedQuaternion, rawQuaternion, SMOOTHING_ALPHA)
       : rawQuaternion;
 
-    const settlingGap = angularDistanceDeg(smoothedQuaternion, rawQuaternion);
-    stableStreak = settlingGap <= STABILITY_THRESHOLD_DEG ? stableStreak + 1 : 0;
-    isStable = stableStreak >= STABLE_STREAK_REQUIRED;
+    updateStabilityBuffer(smoothedQuaternion);
     updateStabilityUi();
 
     const displayOrientation = referenceQuaternion
@@ -132,12 +136,26 @@ export function initUiController() {
     scheduleFrame();
   }
 
+  function updateStabilityBuffer(quaternion) {
+    const now = performance.now();
+    stabilityBuffer.push({ t: now, q: quaternion });
+    while (stabilityBuffer.length > 1 && now - stabilityBuffer[0].t > STABILITY_WINDOW_MS) {
+      stabilityBuffer.shift();
+    }
+
+    const hasFullWindow = stabilityBuffer.length > 1
+      && now - stabilityBuffer[0].t >= STABILITY_WINDOW_MS * 0.9;
+    const spread = maxAngularSpreadDeg(stabilityBuffer.map((entry) => entry.q));
+    isStable = hasFullWindow && spread <= STABILITY_THRESHOLD_DEG;
+  }
+
   function updateStabilityUi() {
     dom.setReferenceBtn.disabled = !isStable;
+    dom.setReferenceBtn.classList.toggle('is-settling', !isStable);
+    dom.setReferenceBtn.textContent = isStable ? SET_REFERENCE_LABEL : SETTLING_LABEL;
     dom.setReferenceBtn.title = isStable
       ? ''
       : 'Hold the device steady for a moment before capturing the reference';
-    dom.stabilityHint.classList.toggle('d-none', isStable);
   }
 
   function scheduleFrame() {
@@ -193,6 +211,8 @@ export function initUiController() {
   dom.setReferenceBtn.addEventListener('click', setReference);
   dom.resetReferenceBtn.addEventListener('click', resetReference);
   dom.setReferenceBtn.disabled = true; // enabled once the first reading settles
+  dom.setReferenceBtn.textContent = SETTLING_LABEL;
+  dom.setReferenceBtn.classList.add('is-settling');
 
   // Permission state starts 'unknown' on platforms that require a
   // request; browsers that don't require one report OK immediately.
@@ -237,6 +257,5 @@ function queryDom() {
     levelBadge: document.getElementById('levelBadge'),
     setReferenceBtn: document.getElementById('setReferenceBtn'),
     resetReferenceBtn: document.getElementById('resetReferenceBtn'),
-    stabilityHint: document.getElementById('stabilityHint'),
   };
 }

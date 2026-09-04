@@ -50,10 +50,15 @@ still coming.
   classic Euler-angle gimbal-lock artifact. Absolute readings were
   unaffected; only the "how far off level" delta was wrong, and only in
   that near-vertical range.
-- Reference capture is now gated on reading stability: raw sensor data
-  can still be settling for a moment after you place the phone down, and
-  capturing a reference mid-settle used to bake that noise into every
-  later comparison.
+- Reference capture is gated on reading stability, so a reference can't
+  get captured while the reading is still settling — that used to bake
+  noise into every later comparison. The first version of this check
+  compared the filtered reading against the noisy raw sensor input,
+  which almost never converges (raw sensor noise doesn't disappear).
+  It now checks whether the *filtered* signal has stopped moving over a
+  short recent window instead, which actually settles once the phone is
+  still. The **Set Reference Orientation** button now clearly changes to
+  "Hold Steady…" (not just a subtle dimming) while it isn't ready yet.
 
 ## Requirements
 
