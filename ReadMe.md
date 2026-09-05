@@ -72,6 +72,14 @@ still coming.
   (rebar, structural steel, appliances) the way a compass-based heading
   can — a deliberate trade for **Android + Chrome only** support, since
   this API has no Safari or Firefox implementation.
+- **Regression fix:** the switch above fed raw sensor quaternions
+  directly into the math built for the old `DeviceOrientationEvent`
+  axis convention, which turned out to be a *different* convention —
+  Roll and Pitch were silently swapped for a short period (Yaw was
+  unaffected, since both conventions happen to treat the same axis as
+  "up"). Fixed by deriving and verifying the correct convention against
+  an independently-tested reference, with regression tests pinning all
+  three axes going forward.
 
 ## Requirements
 
