@@ -20,9 +20,17 @@
  * delta back to roll/pitch/yaw for display. The absolute orientation can
  * sit right at the singularity; the *delta* no longer does.
  *
- * Convention: quaternions are plain {w, x, y, z} objects. Angles in and
- * out remain in degrees, normalized to [-180, 180), matching the rest of
- * the app (see orientationMath.js).
+ * AXIS CONVENTION (important, and previously wrong — see ReadMe.md
+ * changelog): quaternions here follow the standard aerospace ZYX
+ * Tait-Bryan convention (yaw about Z = "up", then pitch about Y, then
+ * roll about X), which is the convention the Generic Sensor API's
+ * `quaternion` property actually uses (verified against a
+ * community-tested compass-heading extraction, since the spec text
+ * alone doesn't spell out per-axis roles). Earlier versions of this
+ * module used a different convention matching the old
+ * DeviceOrientationEvent-based alpha/beta/gamma mapping, which is no
+ * longer relevant now that quaternions come directly from the sensor.
+ * Angles in and out remain in degrees, normalized to [-180, 180).
  */
 
 import { normalizeAngle } from './orientationMath.js';
@@ -36,33 +44,35 @@ const RAD_TO_DEG = 180 / Math.PI;
  */
 
 /**
- * Converts a {roll, pitch, yaw} reading (degrees) to a unit quaternion.
- * Uses the intrinsic Z(yaw)-X(pitch)-Y(roll) rotation order, matching
- * the W3C DeviceOrientationEvent alpha/beta/gamma convention (yaw=alpha
- * around Z, pitch=beta around X, roll=gamma around Y).
+ * Converts a {roll, pitch, yaw} reading (degrees) to a unit quaternion,
+ * using the standard aerospace ZYX Tait-Bryan convention: q = qz(yaw) ⊗
+ * qy(pitch) ⊗ qx(roll). Mainly used in tests, to construct known-angle
+ * quaternions to check quaternionToEuler against — real sensor readings
+ * arrive as quaternions directly (see js/sensors.js) and never need this
+ * conversion.
  * @param {Orientation} orientation
  * @returns {Quaternion}
  */
 export function eulerToQuaternion({ roll, pitch, yaw }) {
-  const hx = (pitch * DEG_TO_RAD) / 2;
-  const hy = (roll * DEG_TO_RAD) / 2;
-  const hz = (yaw * DEG_TO_RAD) / 2;
+  const hr = (roll * DEG_TO_RAD) / 2;
+  const hp = (pitch * DEG_TO_RAD) / 2;
+  const hy = (yaw * DEG_TO_RAD) / 2;
 
-  const cX = Math.cos(hx), sX = Math.sin(hx);
-  const cY = Math.cos(hy), sY = Math.sin(hy);
-  const cZ = Math.cos(hz), sZ = Math.sin(hz);
+  const cr = Math.cos(hr), sr = Math.sin(hr);
+  const cp = Math.cos(hp), sp = Math.sin(hp);
+  const cy = Math.cos(hy), sy = Math.sin(hy);
 
   return {
-    w: cX * cY * cZ - sX * sY * sZ,
-    x: sX * cY * cZ - cX * sY * sZ,
-    y: cX * sY * cZ + sX * cY * sZ,
-    z: cX * cY * sZ + sX * sY * cZ,
+    w: cr * cp * cy + sr * sp * sy,
+    x: sr * cp * cy - cr * sp * sy,
+    y: cr * sp * cy + sr * cp * sy,
+    z: cr * cp * sy - sr * sp * cy,
   };
 }
 
 /**
- * Converts a unit quaternion back to {roll, pitch, yaw} degrees.
- * The exact analytical inverse of eulerToQuaternion's rotation order, so
+ * Converts a unit quaternion back to {roll, pitch, yaw} degrees. The
+ * exact analytical inverse of eulerToQuaternion's rotation order, so
  * round-tripping a single-axis reading returns that same axis/value.
  * @param {Quaternion} q
  * @returns {Orientation}
@@ -70,19 +80,19 @@ export function eulerToQuaternion({ roll, pitch, yaw }) {
 export function quaternionToEuler(q) {
   const { w, x, y, z } = q;
 
-  const sinPitch = clamp(2 * (y * z + w * x), -1, 1);
+  const sinPitch = clamp(2 * (w * y - x * z), -1, 1);
   const pitch = Math.asin(sinPitch);
 
   let roll, yaw;
   if (Math.abs(sinPitch) < 0.9999) {
-    yaw = Math.atan2(2 * (w * z - x * y), 1 - 2 * (x * x + z * z));
-    roll = Math.atan2(2 * (w * y - x * z), 1 - 2 * (x * x + y * y));
+    yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+    roll = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y));
   } else {
     // Gimbal lock in the OUTPUT itself (pitch ~= +-90). Only reachable
     // here if the two orientations being compared differ by ~90 degrees
     // of pitch, which shouldn't happen for a "how far off level" delta.
     roll = 0;
-    yaw = Math.atan2(2 * (x * y - w * z), 2 * (w * y + x * z));
+    yaw = Math.atan2(2 * (w * z - x * y), 1 - 2 * (x * x + z * z));
   }
 
   return {

@@ -119,6 +119,36 @@ test('computeRelativeOrientation regression: near pitch=+-90, a small true rotat
   assert.ok(Math.abs(delta.yaw) < 5, `yaw delta too large: ${delta.yaw}`);
 });
 
+test('regression: quaternionToEuler axis convention matches the Generic Sensor API (not swapped)', () => {
+  // PR #10 switched to feeding raw Generic Sensor API quaternions
+  // directly into this module, but quaternionToEuler was still using
+  // the OLD DeviceOrientationEvent-matching convention — which turned
+  // out to swap roll and pitch entirely (yaw happened to still match,
+  // since both conventions treat Z as the "up"/yaw axis). This pins the
+  // three axes independently against known single-axis rotations, so a
+  // future edit that reintroduces a swap fails loudly here rather than
+  // silently shipping.
+  const rotationAboutX = { w: Math.cos(15 * Math.PI / 360), x: Math.sin(15 * Math.PI / 360), y: 0, z: 0 };
+  const rotationAboutY = { w: Math.cos(15 * Math.PI / 360), x: 0, y: Math.sin(15 * Math.PI / 360), z: 0 };
+  const rotationAboutZ = { w: Math.cos(15 * Math.PI / 360), x: 0, y: 0, z: Math.sin(15 * Math.PI / 360) };
+
+  assertOrientationClose(quaternionToEuler(rotationAboutX), { roll: 15, pitch: 0, yaw: 0 }, 1e-9);
+  assertOrientationClose(quaternionToEuler(rotationAboutY), { roll: 0, pitch: 15, yaw: 0 }, 1e-9);
+  assertOrientationClose(quaternionToEuler(rotationAboutZ), { roll: 0, pitch: 0, yaw: 15 }, 1e-9);
+});
+
+test('regression: yaw extraction matches the independently-verified Generic Sensor API compass formula', () => {
+  // Cross-check against a community-tested formula (mobiforge.com,
+  // verified on real Android devices) for compass heading from this
+  // API's quaternion: atan2(2*(x*y+z*w), 1-2*(y*y+z*z)). If our
+  // formula and this independent one ever disagree, our axis
+  // convention has drifted from the real API again.
+  const q = eulerToQuaternion({ roll: 12, pitch: -8, yaw: 137 });
+  const { x, y, z, w } = q;
+  const independentYawDeg = Math.atan2(2 * (x * y + z * w), 1 - 2 * (y * y + z * z)) * (180 / Math.PI);
+  assert.ok(Math.abs(quaternionToEuler(q).yaw - independentYawDeg) < 1e-9);
+});
+
 test('rotationAngleDeg is 0 for the identity quaternion', () => {
   assert.equal(rotationAngleDeg({ w: 1, x: 0, y: 0, z: 0 }), 0);
 });
