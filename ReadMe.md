@@ -18,11 +18,19 @@ user-facing and free of internal implementation notes.)*
 
 1. Place your phone flat against the wall, next to where the TV will hang.
 2. Tap **Set Reference Orientation** to record the wall's angle. The
-   button is disabled for a moment while the reading settles — hold the
-   device still until it enables.
-3. Place the phone against the back of the TV.
-4. Adjust the TV until Roll and Yaw read close to zero. Pitch is up to you
+   button is disabled ("Hold Steady…") for a moment while the reading
+   settles — hold the device still until it enables.
+3. The screen switches to the alignment readout, and the reference
+   button shrinks to a small button in the corner — tap it again any
+   time to re-capture a fresh reference.
+4. Place the phone against the back of the TV.
+5. Adjust the TV until Roll and Yaw read close to zero. Pitch is up to you
    (a slight forward or backward tilt is often intentional).
+
+If your device supports both available sensor types, a small
+**Relative / Absolute** toggle appears in the header — see "Getting an
+accurate reading" below for what that means and when you'd want to
+switch it.
 
 ## Getting an accurate reading
 
@@ -31,7 +39,12 @@ magnetic interference isn't a concern. If your device only supports the
 fallback sensor (shown in the status badge as "Absolute Orientation
 Sensor"), the yaw axis does rely on the compass and can be noisy or
 drift near large metal objects (structural steel, pipes, appliances,
-rebar in floors/walls). Either way:
+rebar in floors/walls). If your device supports both, a **Relative /
+Absolute** toggle in the header lets you switch — e.g. if Relative
+seems to be drifting over a long session, Absolute (compass-based) may
+be steadier despite the interference trade-off, or vice versa.
+Switching always requires capturing a fresh reference, since the two
+sensors don't share a common frame of reference. Either way:
 
 - Hold the phone still for a second before capturing the reference — the
   **Set Reference Orientation** button won't be clickable until the
@@ -41,11 +54,30 @@ rebar in floors/walls). Either way:
 
 ## Status
 
-🚧 Under active development. Live sensor readout, reference capture, and
-delta display are working. The in-app Help page and PWA installation are
-still coming.
+✅ Core functionality complete: live sensor readout, reference capture,
+delta display, capture-first UX, and a sensor-kind toggle where
+applicable. PWA installation remains a possible future enhancement.
 
-**Recent fixes:**
+**Recent changes:**
+- **Capture-first UX rework:** numeric orientation is no longer shown at
+  all before a reference exists (there's nothing to compare it to yet).
+  The app now shows only a "Set Reference Orientation" prompt
+  full-screen until you capture one; afterward, the roll/pitch/yaw
+  alignment readout becomes the primary focus and the same button
+  shrinks to a small corner control for re-capturing later.
+- **Relative/Absolute sensor toggle**, shown only on devices that
+  support both. Before adding this, a "swing-twist decomposition"
+  algorithm was considered as a way to shield roll/pitch from a noisy
+  compass — verified by simulation *before* implementing it, and it
+  turned out not to help: near-vertical phone orientation (this app's
+  main use case) puts the world heading axis and the device's own roll
+  axis nearly on top of each other (that's what gimbal lock actually
+  is), so compass noise genuinely becomes indistinguishable from roll
+  noise at that orientation — no relabeling scheme fixes that, only
+  removing the compass from the measurement entirely does. That's
+  exactly what `RelativeOrientationSensor` already does, so the real,
+  working choice is which *sensor* to trust, not which algorithm to
+  decode it with.
 - Relative orientation is now computed with quaternions instead of
   subtracting roll/pitch/yaw independently. The old approach could
   misreport a ~1-2 degree real difference as ~179 degrees whenever the

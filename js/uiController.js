@@ -27,6 +27,7 @@ import {
 import {
   SensorKind,
   SensorStatus,
+  isKindSupported,
   preferredKind,
   subscribe,
 } from './sensors.js';
@@ -75,8 +76,9 @@ export function initUiController() {
   let latestForRender = null;
   let stabilityBuffer = []; // [{ t: DOMHighResTimeStamp, q: Quaternion }], newest last
   let isStable = false;
+  let kind = preferredKind(); // RELATIVE preferred over ABSOLUTE when both exist
 
-  const kind = preferredKind(); // RELATIVE preferred over ABSOLUTE when both exist
+  const bothKindsSupported = isKindSupported(SensorKind.RELATIVE) && isKindSupported(SensorKind.ABSOLUTE);
 
   function setStatusBadge(nextStatus) {
     dom.sensorStatusBadge.dataset.status = nextStatus;
@@ -84,6 +86,50 @@ export function initUiController() {
       ? ` (${SENSOR_KIND_LABELS[kind]})`
       : '';
     dom.sensorStatusBadge.textContent = (STATUS_LABELS[nextStatus] ?? 'Sensors: unknown') + kindSuffix;
+  }
+
+  function updateSensorKindToggleUi() {
+    if (!bothKindsSupported) return;
+    dom.sensorKindRelativeBtn.classList.toggle('active', kind === SensorKind.RELATIVE);
+    dom.sensorKindAbsoluteBtn.classList.toggle('active', kind === SensorKind.ABSOLUTE);
+  }
+
+  function switchKind(nextKind) {
+    if (nextKind === kind || !isKindSupported(nextKind)) return;
+    unsubscribe?.();
+    unsubscribe = null;
+    kind = nextKind;
+    // Different sensor kinds have unrelated internal reference frames
+    // (e.g. RelativeOrientationSensor's yaw zero-point is arbitrary and
+    // tied to when it started) — a reference captured under one is
+    // meaningless under the other, so switching always requires a fresh
+    // capture.
+    referenceQuaternion = null;
+    smoothedQuaternion = null;
+    stabilityBuffer = [];
+    isStable = false;
+    updateStabilityUi();
+    updateSensorKindToggleUi();
+    showCaptureSlot();
+    handleStatusChange(SensorStatus.PERMISSION_REQUIRED);
+    startSensors();
+  }
+
+  function showCaptureSlot() {
+    dom.alignmentView.classList.add('d-none');
+    dom.levelBadge.classList.add('d-none');
+    dom.captureSlot.classList.remove('d-none');
+    dom.setReferenceBtn.classList.remove('btn-sm', 'corner-position');
+    dom.setReferenceBtn.classList.add('btn-lg');
+    dom.captureSlot.appendChild(dom.setReferenceBtn);
+  }
+
+  function showAlignmentView() {
+    dom.captureSlot.classList.add('d-none');
+    dom.alignmentView.classList.remove('d-none');
+    dom.setReferenceBtn.classList.remove('btn-lg');
+    dom.setReferenceBtn.classList.add('btn-sm', 'corner-position');
+    dom.cornerSlot.appendChild(dom.setReferenceBtn);
   }
 
   function showOnly(sectionToShow) {
@@ -139,11 +185,9 @@ export function initUiController() {
     updateStabilityBuffer(smoothedQuaternion);
     updateStabilityUi();
 
-    const displayOrientation = referenceQuaternion
-      ? relativeOrientation(smoothedQuaternion, referenceQuaternion)
-      : quaternionToEuler(smoothedQuaternion);
+    if (!referenceQuaternion) return; // nothing visible to update pre-capture
 
-    latestForRender = displayOrientation;
+    latestForRender = relativeOrientation(smoothedQuaternion, referenceQuaternion);
     scheduleFrame();
   }
 
@@ -183,14 +227,9 @@ export function initUiController() {
     setAxisValue(dom.pitchValue, dom.pitchCard, orientation.pitch);
     setAxisValue(dom.yawValue, dom.yawCard, orientation.yaw);
 
-    const hasReference = referenceQuaternion !== null;
-    dom.modeLabel.textContent = hasReference
-      ? 'Relative orientation (Δ from reference)'
-      : 'Absolute orientation';
-
     dom.levelBadge.classList.toggle(
       'd-none',
-      !(hasReference && isLevel(orientation, NEAR_ZERO_THRESHOLD_DEG)),
+      !isLevel(orientation, NEAR_ZERO_THRESHOLD_DEG),
     );
   }
 
@@ -203,21 +242,27 @@ export function initUiController() {
   function setReference() {
     if (!smoothedQuaternion || !isStable) return; // no reading yet, or still settling
     referenceQuaternion = smoothedQuaternion;
-    dom.resetReferenceBtn.classList.remove('d-none');
-  }
 
-  function resetReference() {
-    referenceQuaternion = null;
-    dom.resetReferenceBtn.classList.add('d-none');
-    dom.levelBadge.classList.add('d-none');
+    // Same button, relocated: full-screen -> secondary corner
+    // affordance, since alignment is now the primary focus. Clicking it
+    // again from the corner just re-captures a fresh reference -- no
+    // separate "reset" control needed.
+    showAlignmentView();
   }
 
   dom.requestPermissionBtn.addEventListener('click', startSensors);
   dom.setReferenceBtn.addEventListener('click', setReference);
-  dom.resetReferenceBtn.addEventListener('click', resetReference);
   dom.setReferenceBtn.disabled = true; // enabled once the first reading settles
   dom.setReferenceBtn.textContent = SETTLING_LABEL;
   dom.setReferenceBtn.classList.add('is-settling');
+  showCaptureSlot(); // starts full-screen, pre-capture
+
+  if (bothKindsSupported) {
+    dom.sensorKindToggle.classList.remove('d-none');
+    dom.sensorKindRelativeBtn.addEventListener('click', () => switchKind(SensorKind.RELATIVE));
+    dom.sensorKindAbsoluteBtn.addEventListener('click', () => switchKind(SensorKind.ABSOLUTE));
+    updateSensorKindToggleUi();
+  }
 
   if (!kind) {
     handleStatusChange(SensorStatus.UNSUPPORTED);
@@ -241,6 +286,9 @@ function relativeOrientation(currentQuaternion, referenceQuaternion) {
 function queryDom() {
   return {
     sensorStatusBadge: document.getElementById('sensorStatusBadge'),
+    sensorKindToggle: document.getElementById('sensorKindToggle'),
+    sensorKindRelativeBtn: document.getElementById('sensorKindRelativeBtn'),
+    sensorKindAbsoluteBtn: document.getElementById('sensorKindAbsoluteBtn'),
     permissionPrompt: document.getElementById('permissionPrompt'),
     requestPermissionBtn: document.getElementById('requestPermissionBtn'),
     unsupportedNotice: document.getElementById('unsupportedNotice'),
@@ -248,7 +296,9 @@ function queryDom() {
     statusMessageHint: document.getElementById('statusMessageHint'),
     unsupportedQr: document.getElementById('unsupportedQr'),
     readoutView: document.getElementById('readoutView'),
-    modeLabel: document.getElementById('modeLabel'),
+    captureSlot: document.getElementById('captureSlot'),
+    alignmentView: document.getElementById('alignmentView'),
+    cornerSlot: document.getElementById('cornerSlot'),
     rollValue: document.getElementById('rollValue'),
     pitchValue: document.getElementById('pitchValue'),
     yawValue: document.getElementById('yawValue'),
@@ -257,6 +307,5 @@ function queryDom() {
     yawCard: document.querySelector('.axis-card[data-axis="yaw"]'),
     levelBadge: document.getElementById('levelBadge'),
     setReferenceBtn: document.getElementById('setReferenceBtn'),
-    resetReferenceBtn: document.getElementById('resetReferenceBtn'),
   };
 }

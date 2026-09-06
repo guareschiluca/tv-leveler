@@ -100,6 +100,12 @@ body {
   color: var(--tvl-warn);
 }
 
+#sensorKindToggle .btn.active {
+  background-color: var(--tvl-accent);
+  border-color: var(--tvl-accent);
+  color: #ffffff;
+}
+
 /* ---------- Permission / unsupported states ---------- */
 
 .permission-prompt {
@@ -123,17 +129,15 @@ body {
   display: flex;
 }
 
-.mode-label {
-  font-size: 0.85rem;
-  color: var(--bs-secondary-color);
-  text-transform: none;
+.capture-slot p {
+  max-width: 26rem;
 }
 
 .axes-grid {
   display: grid;
   grid-template-rows: repeat(3, 1fr);
   gap: 0.75rem;
-  padding: 0 1rem;
+  padding: 1rem;
 }
 
 @media (min-width: 700px) {
@@ -187,10 +191,24 @@ body {
   color: var(--tvl-good);
 }
 
-.action-bar {
-  flex: 0 0 auto;
-  border-top: 1px solid var(--tvl-border);
-  background-color: var(--tvl-surface-raised);
+/*
+  The single "Set Reference Orientation" button starts centered in
+  #captureSlot (full-screen, primary focus, before any reference
+  exists) and js/uiController.js relocates it into #cornerSlot once a
+  reference is captured -- shrinking it to a secondary affordance so
+  the alignment readout takes over as the primary focus. #cornerSlot
+  itself is just an anchor point; the button supplies its own fixed
+  positioning once moved there.
+*/
+.corner-slot {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 5;
+}
+
+#setReferenceBtn.corner-position {
+  position: static;
 }
 
 .btn-primary {
