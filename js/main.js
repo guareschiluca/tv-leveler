@@ -13,6 +13,7 @@
 import { initTheme, toggleTheme } from './theme.js';
 import { initUiController } from './uiController.js';
 import { loadHelpContent } from './helpPage.js';
+import { initPwa } from './pwa.js';
 
 /**
  * The header menu uses `data-bs-auto-close="outside"` (see index.html)
@@ -51,6 +52,7 @@ function init() {
 
   initHelpModal();
   initUiController();
+  initPwa();
 }
 
 document.addEventListener('DOMContentLoaded', init);

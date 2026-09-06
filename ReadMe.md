@@ -41,6 +41,24 @@ Absolute** switch is available from the menu (top-right, next to the
 status dot) — see "Getting an accurate reading" below for what that means
 and when you'd want to switch it.
 
+On a supported phone/browser, the menu also offers an **Install app**
+option once your browser judges the page installable — see "Installing
+as an app" below.
+
+## Installing as an app
+
+This app can be installed to your phone's home screen like a native app,
+via **Install app** in the menu. It'll then open full-screen (no browser
+address bar) with its own icon, and keeps working without a network
+connection after the first visit — handy since a garage or a spot behind
+a soon-to-be-mounted TV isn't always great for signal.
+
+The install option only appears when your browser considers the app
+installable *and* your device actually supports the sensors this app
+needs — there's no point installing it otherwise. If you don't see it,
+your browser may offer its own built-in "Add to Home Screen" option from
+its menu instead (Chrome on Android always does).
+
 ## Getting an accurate reading
 
 On most devices this app uses a sensor that never touches the compass, so
@@ -64,10 +82,15 @@ sensors don't share a common frame of reference. Either way:
 ## Status
 
 ✅ Core functionality complete: live sensor readout, reference capture,
-delta display, capture-first UX, and a sensor-kind toggle where
-applicable. PWA installation remains a possible future enhancement.
+delta display, capture-first UX, a sensor-kind toggle where applicable,
+and installable/offline PWA support.
 
 **Recent changes:**
+- **Installable PWA:** the app now has a manifest, an app icon (home
+  screen + favicon), and a service worker that caches the app shell for
+  offline use after the first visit. An **Install app** option appears
+  in the menu, but only once the browser deems the page installable
+  *and* the device supports the sensors this app actually needs.
 - **Layout & clarity restyle:** the header now shows only the title and a
   small status dot, with the sensor-kind switch, theme toggle, and help
   moved into a single menu — nothing to wrap or crowd on small/portrait
@@ -155,11 +178,21 @@ root:
 node --test
 ```
 
+The app icon lives at `icons/icon.svg` (the one file to edit if you want
+to restyle it); every raster size (PNGs, `favicon.ico`) is generated from
+it by `tools/generate-icons.sh`, a dev-only script with no bearing on the
+running app itself. It needs `rsvg-convert` (Debian/Ubuntu:
+`apt install librsvg2-bin`) and Python + Pillow
+(`pip install --break-system-packages pillow`).
+
 ## Privacy
 
 This app runs entirely in your browser. It does not collect data, does not
 talk to any server, and does not store anything beyond the current
-reference orientation in memory for the current page session.
+reference orientation in memory for the current page session. The
+service worker's offline cache (used only if you install the app) stores
+copies of the app's own files on your device for offline use — it does
+not send anything anywhere, and holds no personal data.
 
 ## License
 

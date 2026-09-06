@@ -11,6 +11,14 @@
 const DARK = 'dark';
 const LIGHT = 'light';
 
+// Kept in sync with --tvl-surface in css/style.css for each theme --
+// this is what the OS uses to tint the browser chrome/status bar and
+// the PWA splash screen, so it should always match the app background.
+const SURFACE_COLOR = {
+  [DARK]: '#12161C',
+  [LIGHT]: '#F4F6F9',
+};
+
 let currentTheme = DARK;
 
 function systemPrefersDark() {
@@ -20,6 +28,9 @@ function systemPrefersDark() {
 function applyTheme(theme) {
   currentTheme = theme;
   document.documentElement.setAttribute('data-bs-theme', theme);
+
+  document.querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', SURFACE_COLOR[theme]);
 
   const iconDark = document.getElementById('themeIconDark');
   const iconLight = document.getElementById('themeIconLight');
