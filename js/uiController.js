@@ -110,8 +110,26 @@ export function initUiController() {
     isStable = false;
     updateStabilityUi();
     updateSensorKindToggleUi();
+    showCaptureSlot();
     handleStatusChange(SensorStatus.PERMISSION_REQUIRED);
     startSensors();
+  }
+
+  function showCaptureSlot() {
+    dom.alignmentView.classList.add('d-none');
+    dom.levelBadge.classList.add('d-none');
+    dom.captureSlot.classList.remove('d-none');
+    dom.setReferenceBtn.classList.remove('btn-sm', 'corner-position');
+    dom.setReferenceBtn.classList.add('btn-lg');
+    dom.captureSlot.appendChild(dom.setReferenceBtn);
+  }
+
+  function showAlignmentView() {
+    dom.captureSlot.classList.add('d-none');
+    dom.alignmentView.classList.remove('d-none');
+    dom.setReferenceBtn.classList.remove('btn-lg');
+    dom.setReferenceBtn.classList.add('btn-sm', 'corner-position');
+    dom.cornerSlot.appendChild(dom.setReferenceBtn);
   }
 
   function showOnly(sectionToShow) {
@@ -167,11 +185,9 @@ export function initUiController() {
     updateStabilityBuffer(smoothedQuaternion);
     updateStabilityUi();
 
-    const displayOrientation = referenceQuaternion
-      ? relativeOrientation(smoothedQuaternion, referenceQuaternion)
-      : quaternionToEuler(smoothedQuaternion);
+    if (!referenceQuaternion) return; // nothing visible to update pre-capture
 
-    latestForRender = displayOrientation;
+    latestForRender = relativeOrientation(smoothedQuaternion, referenceQuaternion);
     scheduleFrame();
   }
 
@@ -211,14 +227,9 @@ export function initUiController() {
     setAxisValue(dom.pitchValue, dom.pitchCard, orientation.pitch);
     setAxisValue(dom.yawValue, dom.yawCard, orientation.yaw);
 
-    const hasReference = referenceQuaternion !== null;
-    dom.modeLabel.textContent = hasReference
-      ? 'Relative orientation (Δ from reference)'
-      : 'Absolute orientation';
-
     dom.levelBadge.classList.toggle(
       'd-none',
-      !(hasReference && isLevel(orientation, NEAR_ZERO_THRESHOLD_DEG)),
+      !isLevel(orientation, NEAR_ZERO_THRESHOLD_DEG),
     );
   }
 
@@ -231,21 +242,20 @@ export function initUiController() {
   function setReference() {
     if (!smoothedQuaternion || !isStable) return; // no reading yet, or still settling
     referenceQuaternion = smoothedQuaternion;
-    dom.resetReferenceBtn.classList.remove('d-none');
-  }
 
-  function resetReference() {
-    referenceQuaternion = null;
-    dom.resetReferenceBtn.classList.add('d-none');
-    dom.levelBadge.classList.add('d-none');
+    // Same button, relocated: full-screen -> secondary corner
+    // affordance, since alignment is now the primary focus. Clicking it
+    // again from the corner just re-captures a fresh reference -- no
+    // separate "reset" control needed.
+    showAlignmentView();
   }
 
   dom.requestPermissionBtn.addEventListener('click', startSensors);
   dom.setReferenceBtn.addEventListener('click', setReference);
-  dom.resetReferenceBtn.addEventListener('click', resetReference);
   dom.setReferenceBtn.disabled = true; // enabled once the first reading settles
   dom.setReferenceBtn.textContent = SETTLING_LABEL;
   dom.setReferenceBtn.classList.add('is-settling');
+  showCaptureSlot(); // starts full-screen, pre-capture
 
   if (bothKindsSupported) {
     dom.sensorKindToggle.classList.remove('d-none');
@@ -286,7 +296,9 @@ function queryDom() {
     statusMessageHint: document.getElementById('statusMessageHint'),
     unsupportedQr: document.getElementById('unsupportedQr'),
     readoutView: document.getElementById('readoutView'),
-    modeLabel: document.getElementById('modeLabel'),
+    captureSlot: document.getElementById('captureSlot'),
+    alignmentView: document.getElementById('alignmentView'),
+    cornerSlot: document.getElementById('cornerSlot'),
     rollValue: document.getElementById('rollValue'),
     pitchValue: document.getElementById('pitchValue'),
     yawValue: document.getElementById('yawValue'),
@@ -295,6 +307,5 @@ function queryDom() {
     yawCard: document.querySelector('.axis-card[data-axis="yaw"]'),
     levelBadge: document.getElementById('levelBadge'),
     setReferenceBtn: document.getElementById('setReferenceBtn'),
-    resetReferenceBtn: document.getElementById('resetReferenceBtn'),
   };
 }

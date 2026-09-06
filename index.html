@@ -56,37 +56,44 @@
         <div id="unsupportedQr" class="unsupported-qr"></div>
       </div>
 
-      <div id="readoutView" class="readout-view d-none flex-grow-1 flex-column">
+      <div id="readoutView" class="readout-view d-none flex-grow-1 flex-column position-relative">
 
-        <div class="mode-indicator text-center py-2">
-          <span id="modeLabel" class="mode-label">Absolute orientation</span>
+        <!-- Pre-capture: this is the ONLY thing shown before a reference
+             exists. Numeric orientation is not meaningful yet, so it's
+             not shown at all -- see ReadMe.md. -->
+        <div id="captureSlot" class="capture-slot flex-grow-1 d-flex flex-column align-items-center justify-content-center text-center px-4 gap-3">
+          <p class="mb-0 text-body-secondary">Place the phone flat against the wall, then capture the reference orientation.</p>
         </div>
 
-        <div class="axes-grid flex-grow-1">
-          <div class="axis-card" data-axis="roll">
-            <span class="axis-name">Roll</span>
-            <span id="rollValue" class="axis-value">0.0°</span>
+        <!-- Post-capture: alignment readout becomes the primary,
+             full-screen focus. -->
+        <div id="alignmentView" class="alignment-view d-none flex-grow-1 flex-column">
+          <div class="axes-grid flex-grow-1">
+            <div class="axis-card" data-axis="roll">
+              <span class="axis-name">Roll</span>
+              <span id="rollValue" class="axis-value">0.0°</span>
+            </div>
+            <div class="axis-card" data-axis="pitch">
+              <span class="axis-name">Pitch</span>
+              <span id="pitchValue" class="axis-value">0.0°</span>
+            </div>
+            <div class="axis-card" data-axis="yaw">
+              <span class="axis-name">Yaw</span>
+              <span id="yawValue" class="axis-value">0.0°</span>
+            </div>
           </div>
-          <div class="axis-card" data-axis="pitch">
-            <span class="axis-name">Pitch</span>
-            <span id="pitchValue" class="axis-value">0.0°</span>
-          </div>
-          <div class="axis-card" data-axis="yaw">
-            <span class="axis-name">Yaw</span>
-            <span id="yawValue" class="axis-value">0.0°</span>
-          </div>
+          <div id="levelBadge" class="level-badge d-none text-center py-2">Level ✓</div>
         </div>
 
-        <div id="levelBadge" class="level-badge d-none text-center py-2">Level ✓</div>
+        <!-- Same control as the one in captureSlot -- js/uiController.js
+             relocates this single button here once a reference is
+             captured, shrinking it to a secondary corner affordance so
+             the alignment readout stays the primary focus. -->
+        <div id="cornerSlot" class="corner-slot"></div>
 
-        <div class="action-bar d-flex align-items-center justify-content-center gap-3 p-3">
-          <button id="resetReferenceBtn" type="button" class="btn btn-outline-secondary btn-lg d-none">
-            Reset Reference
-          </button>
-          <button id="setReferenceBtn" type="button" class="btn btn-primary btn-lg">
-            Set Reference Orientation
-          </button>
-        </div>
+        <button id="setReferenceBtn" type="button" class="btn btn-primary btn-lg">
+          Set Reference Orientation
+        </button>
 
       </div>
 
