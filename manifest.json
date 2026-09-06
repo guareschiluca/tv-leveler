@@ -1,0 +1,25 @@
+{
+  "name": "TV Leveler",
+  "short_name": "TV Leveler",
+  "description": "Level a wall-mounted TV using your phone's orientation sensors.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12161C",
+  "theme_color": "#12161C",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

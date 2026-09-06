@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!--
+    TV Leveler app icon.
+
+    Deliberately reuses the same idea as the in-app level visualizer
+    (see .level-visualizer in css/style.css): a tilted rectangle
+    standing in for "the TV", with a small bubble standing in for
+    "level achieved". Colors are pulled straight from the app's own
+    CSS variables (tvl-surface, tvl-accent, tvl-good) so the
+    icon and the app read as the same product.
+
+    Every shape below sits well inside the 80%-diameter "safe zone"
+    (radius 409.6 around the 512,512 center) that maskable icon hosts
+    may crop to, so this single file works as both a plain icon and a
+    maskable one, see manifest.json.
+  -->
+
+  <!-- Background: full-bleed, no baked-in corner rounding; the OS/
+       browser applies its own shape (rounded square, circle, squircle,
+       favicon tab, ...) around whatever is here. -->
+  <rect width="1024" height="1024" fill="#12161C"/>
+
+  <!-- The "TV": tilted to imply a not-yet-level starting point. -->
+  <g transform="rotate(-9 512 512)">
+    <rect x="232" y="312" width="560" height="400" rx="60" fill="#4C8DFF"/>
+    <rect x="272" y="352" width="480" height="320" rx="34" fill="#12161C"/>
+    <circle cx="662" cy="542" r="70" fill="#34D399"/>
+  </g>
+</svg>
