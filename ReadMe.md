@@ -27,9 +27,14 @@ user-facing and free of internal implementation notes.)*
 5. Adjust the TV until **Roll** and **Yaw** read close to zero. **Pitch**
    is up to you (a slight forward or backward tilt is often intentional).
 
-Each axis also has its own icon as a quick visual reminder of what it
-means: a twisting phone for roll, an up/down tilt for pitch, a left/right
-turn for yaw.
+The alignment screen isn't just three numbers: a small rectangle above
+them tilts in 3D right along with the phone — spinning for roll, tipping
+toward/away from you for pitch, turning sideways for yaw — against a
+dashed outline showing the target. Its edges (and the little bar across
+its middle, for roll) turn green axis-by-axis the moment that axis is
+within tolerance, the same as the number below it. Each axis also has its
+own icon as a quick visual reminder of what it means: a twisting phone for
+roll, an up/down tilt for pitch, a left/right turn for yaw.
 
 If your device supports both available sensor types, a **Relative /
 Absolute** switch is available from the menu (top-right, next to the
@@ -69,7 +74,8 @@ applicable. PWA installation remains a possible future enhancement.
   screens. The three axis cards are evenly sized and each pairs its label
   with a small icon and a plain-language hint ("tilt sideways", "tilt
   up/down", "turn left/right"), so roll/pitch/yaw don't require prior
-  knowledge to read.
+  knowledge to read. The alignment screen also gained the live 3D tilt
+  preview described above.
 - **Capture-first UX rework:** numeric orientation is no longer shown at
   all before a reference exists (there's nothing to compare it to yet).
   The app now shows only a "Set Reference Orientation" prompt

@@ -164,6 +164,77 @@ body {
   max-width: 26rem;
 }
 
+/* ---------- Level visualizer (3D tilt preview) ---------- */
+
+.level-visualizer {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1rem 0;
+  flex: 0 0 auto;
+}
+
+.level-visualizer-inner {
+  position: relative;
+  width: min(58vw, 220px);
+  height: min(30vh, 150px);
+  perspective: 900px;
+}
+
+.level-ref-rect {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--tvl-border);
+  border-radius: 0.9rem;
+}
+
+.level-live-rect {
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--tvl-border);
+  border-radius: 0.9rem;
+  background-color: color-mix(in srgb, var(--tvl-accent) 6%, transparent);
+  transition: border-color 150ms ease, background-color 150ms ease;
+  will-change: transform;
+}
+
+/* Left/right edges track yaw (turning left/right); top/bottom edges
+   track pitch (tilting up/down) -- each pair lights up independently
+   as that specific axis nears zero. */
+.level-live-rect[data-yaw-level="true"] {
+  border-left-color: var(--tvl-good);
+  border-right-color: var(--tvl-good);
+}
+
+.level-live-rect[data-pitch-level="true"] {
+  border-top-color: var(--tvl-good);
+  border-bottom-color: var(--tvl-good);
+}
+
+.level-live-rect[data-yaw-level="true"][data-pitch-level="true"] {
+  background-color: color-mix(in srgb, var(--tvl-good) 10%, transparent);
+}
+
+/* Independent "spirit level" bubble bar for roll: rotates with roll
+   only, so it stays legible even while the rectangle behind it is
+   also tilted in 3D from pitch/yaw. */
+.level-roll-indicator {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 999px;
+  background-color: var(--tvl-border);
+  transform-origin: center;
+  transition: background-color 150ms ease;
+  z-index: 1;
+}
+
+.level-roll-indicator[data-roll-level="true"] {
+  background-color: var(--tvl-good);
+}
+
 /* ---------- Axis readouts ---------- */
 
 .axes-grid {
@@ -339,7 +410,9 @@ body {
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .axis-card {
+  .axis-card,
+  .level-live-rect,
+  .level-roll-indicator {
     transition: none;
   }
 }

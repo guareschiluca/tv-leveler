@@ -93,6 +93,27 @@
         <!-- Post-capture: alignment readout becomes the primary,
              full-screen focus. -->
         <div id="alignmentView" class="alignment-view d-none flex-grow-1 flex-column">
+
+          <!-- Live visual aid: a fixed dashed rectangle shows the ideal
+               reference orientation; the solid rectangle in front of it
+               tilts in 3D (roll = spin, pitch = rotateX, yaw = rotateY)
+               to mirror the live delta, and its edges turn green
+               axis-by-axis as each one nears zero. The floating bar is
+               an independent "spirit level" bubble for roll, since a
+               3D-tilted rectangle alone doesn't read as a twist. -->
+          <div class="level-visualizer" aria-hidden="true">
+            <div class="level-visualizer-inner">
+              <div class="level-ref-rect"></div>
+              <div id="levelLiveRect" class="level-live-rect"></div>
+              <!-- Sibling, not a child, of levelLiveRect: it must NOT sit
+                   inside that element's 3D transform stack, or it would
+                   inherit the pitch/yaw tilt along with roll. Kept flat
+                   and on top so it only ever reads as roll -- see
+                   js/uiController.js updateLevelVisualizer(). -->
+              <span id="levelRollIndicator" class="level-roll-indicator"></span>
+            </div>
+          </div>
+
           <div class="axes-grid flex-grow-1">
             <div class="axis-card" data-axis="roll">
               <div class="axis-icon">

@@ -231,6 +231,7 @@ export function initUiController() {
     setAxisValue(dom.rollValue, dom.rollCard, orientation.roll);
     setAxisValue(dom.pitchValue, dom.pitchCard, orientation.pitch);
     setAxisValue(dom.yawValue, dom.yawCard, orientation.yaw);
+    updateLevelVisualizer(orientation);
 
     dom.levelBadge.classList.toggle(
       'd-none',
@@ -242,6 +243,32 @@ export function initUiController() {
     const displayValue = Object.is(valueDeg, -0) ? 0 : valueDeg;
     valueEl.textContent = `${displayValue.toFixed(1)}°`;
     cardEl.classList.toggle('is-near-zero', isNearZero(valueDeg, NEAR_ZERO_THRESHOLD_DEG));
+  }
+
+  /**
+   * Drives the 3D tilt-preview rectangle: roll spins it in-plane
+   * (rotateZ), pitch tilts it toward/away from the viewer (rotateX),
+   * and yaw turns it sideways (rotateY) -- a direct, literal reading of
+   * "how the TV is tilted relative to the wall", no separate diagram
+   * legend required. Each edge pair (and the independent roll bubble)
+   * turns green the moment that specific axis is within tolerance, so
+   * the visual and the numeric readout always agree.
+   */
+  function updateLevelVisualizer(orientation) {
+    const { roll, pitch, yaw } = orientation;
+
+    dom.levelLiveRect.style.transform =
+      `rotateZ(${roll}deg) rotateX(${-pitch}deg) rotateY(${yaw}deg)`;
+    dom.levelLiveRect.dataset.yawLevel = String(isNearZero(yaw, NEAR_ZERO_THRESHOLD_DEG));
+    dom.levelLiveRect.dataset.pitchLevel = String(isNearZero(pitch, NEAR_ZERO_THRESHOLD_DEG));
+
+    // This element is a DOM sibling of levelLiveRect, not a child --
+    // see index.html. That matters: a child would sit inside the
+    // rectangle's 3D transform stack and inherit its pitch/yaw tilt
+    // along with roll. Kept as a flat, independent overlay instead, so
+    // it reads purely as roll, the way a real bubble level does.
+    dom.levelRollIndicator.style.transform = `rotate(${roll}deg)`;
+    dom.levelRollIndicator.dataset.rollLevel = String(isNearZero(roll, NEAR_ZERO_THRESHOLD_DEG));
   }
 
   function setReference() {
@@ -305,6 +332,8 @@ function queryDom() {
     captureSlot: document.getElementById('captureSlot'),
     alignmentView: document.getElementById('alignmentView'),
     cornerSlot: document.getElementById('cornerSlot'),
+    levelLiveRect: document.getElementById('levelLiveRect'),
+    levelRollIndicator: document.getElementById('levelRollIndicator'),
     rollValue: document.getElementById('rollValue'),
     pitchValue: document.getElementById('pitchValue'),
     yawValue: document.getElementById('yawValue'),
