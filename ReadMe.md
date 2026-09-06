@@ -24,23 +24,32 @@ user-facing and free of internal implementation notes.)*
    button shrinks to a small button in the corner — tap it again any
    time to re-capture a fresh reference.
 4. Place the phone against the back of the TV.
-5. Adjust the TV until Roll and Yaw read close to zero. Pitch is up to you
-   (a slight forward or backward tilt is often intentional).
+5. Adjust the TV until **Roll** and **Yaw** read close to zero. **Pitch**
+   is up to you (a slight forward or backward tilt is often intentional).
 
-If your device supports both available sensor types, a small
-**Relative / Absolute** toggle appears in the header — see "Getting an
-accurate reading" below for what that means and when you'd want to
-switch it.
+The alignment screen isn't just three numbers: a small rectangle above
+them tilts in 3D right along with the phone — spinning for roll, tipping
+toward/away from you for pitch, turning sideways for yaw — against a
+dashed outline showing the target. Its edges (and the little bar across
+its middle, for roll) turn green axis-by-axis the moment that axis is
+within tolerance, the same as the number below it. Each axis also has its
+own icon as a quick visual reminder of what it means: a twisting phone for
+roll, an up/down tilt for pitch, a left/right turn for yaw.
+
+If your device supports both available sensor types, a **Relative /
+Absolute** switch is available from the menu (top-right, next to the
+status dot) — see "Getting an accurate reading" below for what that means
+and when you'd want to switch it.
 
 ## Getting an accurate reading
 
 On most devices this app uses a sensor that never touches the compass, so
 magnetic interference isn't a concern. If your device only supports the
-fallback sensor (shown in the status badge as "Absolute Orientation
+fallback sensor (shown in the menu's status line as "Absolute Orientation
 Sensor"), the yaw axis does rely on the compass and can be noisy or
 drift near large metal objects (structural steel, pipes, appliances,
 rebar in floors/walls). If your device supports both, a **Relative /
-Absolute** toggle in the header lets you switch — e.g. if Relative
+Absolute** switch in the menu lets you change it — e.g. if Relative
 seems to be drifting over a long session, Absolute (compass-based) may
 be steadier despite the interference trade-off, or vice versa.
 Switching always requires capturing a fresh reference, since the two
@@ -59,6 +68,14 @@ delta display, capture-first UX, and a sensor-kind toggle where
 applicable. PWA installation remains a possible future enhancement.
 
 **Recent changes:**
+- **Layout & clarity restyle:** the header now shows only the title and a
+  small status dot, with the sensor-kind switch, theme toggle, and help
+  moved into a single menu — nothing to wrap or crowd on small/portrait
+  screens. The three axis cards are evenly sized and each pairs its label
+  with a small icon and a plain-language hint ("tilt sideways", "tilt
+  up/down", "turn left/right"), so roll/pitch/yaw don't require prior
+  knowledge to read. The alignment screen also gained the live 3D tilt
+  preview described above.
 - **Capture-first UX rework:** numeric orientation is no longer shown at
   all before a reference exists (there's nothing to compare it to yet).
   The app now shows only a "Set Reference Orientation" prompt

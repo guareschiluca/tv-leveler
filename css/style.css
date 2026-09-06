@@ -74,30 +74,61 @@ body {
   background-color: var(--tvl-surface);
 }
 
-.status-badge {
-  font-family: var(--tvl-font-body);
-  font-weight: 500;
-  font-size: 0.72rem;
-  padding: 0.35em 0.65em;
+/*
+  Status dot: the header only ever shows a small colored dot (title
+  attribute carries the full text for anyone who hovers/long-presses).
+  The full sentence lives in the menu instead -- see .app-menu-status.
+*/
+.status-dot {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
   border-radius: 999px;
-  color: var(--bs-body-color);
   background-color: var(--tvl-border);
+  flex: 0 0 auto;
 }
 
-.status-badge[data-status="ok"] {
-  background-color: color-mix(in srgb, var(--tvl-good) 22%, transparent);
-  color: var(--tvl-good);
+.status-dot[data-status="ok"] {
+  background-color: var(--tvl-good);
 }
 
-.status-badge[data-status="missing"],
-.status-badge[data-status="unsupported"] {
-  background-color: color-mix(in srgb, var(--bs-danger) 22%, transparent);
-  color: var(--bs-danger);
+.status-dot[data-status="missing"],
+.status-dot[data-status="unsupported"] {
+  background-color: var(--bs-danger);
 }
 
-.status-badge[data-status="permission-required"] {
-  background-color: color-mix(in srgb, var(--tvl-warn) 25%, transparent);
-  color: var(--tvl-warn);
+.status-dot[data-status="permission-required"] {
+  background-color: var(--tvl-warn);
+}
+
+/* ---------- Header menu (sensor kind + theme + help) ---------- */
+
+.app-menu {
+  min-width: 15.5rem;
+  padding: 0.5rem;
+  border-color: var(--tvl-border);
+}
+
+.app-menu-status {
+  padding: 0.35rem 0.5rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+}
+
+.app-menu-block {
+  padding: 0.15rem 0.5rem 0.5rem;
+}
+
+.app-menu-block-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.35rem;
+}
+
+.app-menu .dropdown-item {
+  border-radius: 0.5rem;
 }
 
 #sensorKindToggle .btn.active {
@@ -133,31 +164,117 @@ body {
   max-width: 26rem;
 }
 
+/* ---------- Level visualizer (3D tilt preview) ---------- */
+
+.level-visualizer {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1rem 0;
+  flex: 0 0 auto;
+}
+
+.level-visualizer-inner {
+  position: relative;
+  width: min(58vw, 220px);
+  height: min(30vh, 150px);
+  perspective: 900px;
+}
+
+.level-ref-rect {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--tvl-border);
+  border-radius: 0.9rem;
+}
+
+.level-live-rect {
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--tvl-border);
+  border-radius: 0.9rem;
+  background-color: color-mix(in srgb, var(--tvl-accent) 6%, transparent);
+  transition: border-color 150ms ease, background-color 150ms ease;
+  will-change: transform;
+}
+
+/* Left/right edges track yaw (turning left/right); top/bottom edges
+   track pitch (tilting up/down) -- each pair lights up independently
+   as that specific axis nears zero. */
+.level-live-rect[data-yaw-level="true"] {
+  border-left-color: var(--tvl-good);
+  border-right-color: var(--tvl-good);
+}
+
+.level-live-rect[data-pitch-level="true"] {
+  border-top-color: var(--tvl-good);
+  border-bottom-color: var(--tvl-good);
+}
+
+.level-live-rect[data-yaw-level="true"][data-pitch-level="true"] {
+  background-color: color-mix(in srgb, var(--tvl-good) 10%, transparent);
+}
+
+/* Independent "spirit level" bubble bar for roll: rotates with roll
+   only, so it stays legible even while the rectangle behind it is
+   also tilted in 3D from pitch/yaw. */
+.level-roll-indicator {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 999px;
+  background-color: var(--tvl-border);
+  transform-origin: center;
+  transition: background-color 150ms ease;
+  z-index: 1;
+}
+
+.level-roll-indicator[data-roll-level="true"] {
+  background-color: var(--tvl-good);
+}
+
+/* ---------- Axis readouts ---------- */
+
 .axes-grid {
   display: grid;
   grid-template-rows: repeat(3, 1fr);
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem 1rem;
+  max-width: 34rem;
+  width: 100%;
+  margin: 0 auto;
 }
 
 @media (min-width: 700px) {
   .axes-grid {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: 1fr;
+    max-width: 56rem;
   }
 }
 
 .axis-card {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
+  gap: 0.75rem;
   background-color: var(--tvl-surface-raised);
   border: 1px solid var(--tvl-border);
   border-radius: 1.25rem;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+@media (min-width: 700px) {
+  .axis-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 0.35rem;
+  }
 }
 
 .axis-card.is-near-zero {
@@ -165,20 +282,59 @@ body {
   background-color: color-mix(in srgb, var(--tvl-good) 10%, var(--tvl-surface-raised));
 }
 
+.axis-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  color: var(--bs-secondary-color);
+}
+
+.axis-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.axis-card.is-near-zero .axis-icon {
+  color: var(--tvl-good);
+}
+
+.axis-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .axis-name {
   font-family: var(--tvl-font-body);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.axis-hint {
+  font-family: var(--tvl-font-body);
+  font-size: 0.72rem;
   color: var(--bs-secondary-color);
 }
 
 .axis-value {
   font-family: var(--tvl-font-display);
   font-weight: 700;
-  font-size: clamp(2.5rem, 10vw, 4rem);
+  font-size: clamp(1.9rem, 7vw, 3rem);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--bs-body-color);
+  text-align: right;
+}
+
+@media (min-width: 700px) {
+  .axis-value {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    text-align: center;
+  }
 }
 
 .axis-card.is-near-zero .axis-value {
@@ -254,7 +410,9 @@ body {
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .axis-card {
+  .axis-card,
+  .level-live-rect,
+  .level-roll-indicator {
     transition: none;
   }
 }

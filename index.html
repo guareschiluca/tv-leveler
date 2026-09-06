@@ -21,24 +21,49 @@
 
   <div class="app-shell d-flex flex-column vh-100">
 
-    <!-- Top bar: status + theme toggle + help -->
+    <!-- Top bar: kept deliberately minimal (title + status + one menu)
+         so it never crowds or wraps on small/portrait screens. Sensor
+         kind toggle, theme toggle, and help all live inside the single
+         dropdown menu instead of competing for header space. -->
     <header class="app-header d-flex align-items-center justify-content-between px-3 py-2">
       <div class="d-flex align-items-center gap-2">
         <span class="app-title">TV Leveler</span>
-        <span id="sensorStatusBadge" class="badge status-badge" data-status="unknown">Sensors: coming soon</span>
+        <span id="sensorStatusDot" class="status-dot" data-status="unknown" aria-hidden="true"></span>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <div id="sensorKindToggle" class="btn-group btn-group-sm d-none" role="group" aria-label="Orientation sensor">
-          <button id="sensorKindRelativeBtn" type="button" class="btn btn-outline-secondary" data-kind="relative">Relative</button>
-          <button id="sensorKindAbsoluteBtn" type="button" class="btn btn-outline-secondary" data-kind="absolute">Absolute</button>
-        </div>
-        <button id="helpBtn" type="button" class="btn btn-icon" aria-label="Help">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+
+      <div class="dropdown">
+        <button id="menuBtn" type="button" class="btn btn-icon" data-bs-toggle="dropdown"
+          data-bs-auto-close="outside" aria-expanded="false" aria-label="Settings and help">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line><circle cx="9" cy="7" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="11" cy="17" r="1.6" fill="currentColor" stroke="none"></circle></svg>
         </button>
-        <button id="themeToggleBtn" type="button" class="btn btn-icon" aria-label="Toggle light/dark theme">
-          <svg id="themeIconDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-          <svg id="themeIconLight" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="d-none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end app-menu" aria-labelledby="menuBtn">
+          <li id="sensorStatusLabel" class="app-menu-status">Sensors: coming soon</li>
+
+          <li id="sensorKindMenuItem" class="app-menu-block d-none">
+            <span class="app-menu-block-label">Orientation sensor</span>
+            <div id="sensorKindToggle" class="btn-group btn-group-sm w-100" role="group" aria-label="Orientation sensor">
+              <button id="sensorKindRelativeBtn" type="button" class="btn btn-outline-secondary" data-kind="relative">Relative</button>
+              <button id="sensorKindAbsoluteBtn" type="button" class="btn btn-outline-secondary" data-kind="absolute">Absolute</button>
+            </div>
+          </li>
+
+          <li><hr class="dropdown-divider"></li>
+
+          <li>
+            <button id="themeToggleBtn" type="button" class="dropdown-item d-flex align-items-center gap-2">
+              <svg id="themeIconDark" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+              <svg id="themeIconLight" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="d-none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+              <span>Toggle theme</span>
+            </button>
+          </li>
+          <li>
+            <button id="helpBtn" type="button" class="dropdown-item d-flex align-items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <span>Help</span>
+            </button>
+          </li>
+        </ul>
       </div>
     </header>
 
@@ -68,17 +93,74 @@
         <!-- Post-capture: alignment readout becomes the primary,
              full-screen focus. -->
         <div id="alignmentView" class="alignment-view d-none flex-grow-1 flex-column">
+
+          <!-- Live visual aid: a fixed dashed rectangle shows the ideal
+               reference orientation; the solid rectangle in front of it
+               tilts in 3D (roll = spin, pitch = rotateX, yaw = rotateY)
+               to mirror the live delta, and its edges turn green
+               axis-by-axis as each one nears zero. The floating bar is
+               an independent "spirit level" bubble for roll, since a
+               3D-tilted rectangle alone doesn't read as a twist. -->
+          <div class="level-visualizer" aria-hidden="true">
+            <div class="level-visualizer-inner">
+              <div class="level-ref-rect"></div>
+              <div id="levelLiveRect" class="level-live-rect"></div>
+              <!-- Sibling, not a child, of levelLiveRect: it must NOT sit
+                   inside that element's 3D transform stack, or it would
+                   inherit the pitch/yaw tilt along with roll. Kept flat
+                   and on top so it only ever reads as roll -- see
+                   js/uiController.js updateLevelVisualizer(). -->
+              <span id="levelRollIndicator" class="level-roll-indicator"></span>
+            </div>
+          </div>
+
           <div class="axes-grid flex-grow-1">
             <div class="axis-card" data-axis="roll">
-              <span class="axis-name">Roll</span>
+              <div class="axis-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="8.2" y="6" width="7.6" height="12" rx="1.4" transform="rotate(18 12 12)"></rect>
+                  <path d="M4.5 13.5A8 8 0 0 1 17 6"></path>
+                  <path d="M19.5 10.5A8 8 0 0 1 7 18"></path>
+                  <polyline points="17.3,4.2 17.9,6.9 15.2,7.2"></polyline>
+                  <polyline points="6.7,19.8 6.1,17.1 8.8,16.8"></polyline>
+                </svg>
+              </div>
+              <div class="axis-text">
+                <span class="axis-name">Roll</span>
+                <span class="axis-hint">tilt sideways</span>
+              </div>
               <span id="rollValue" class="axis-value">0.0°</span>
             </div>
             <div class="axis-card" data-axis="pitch">
-              <span class="axis-name">Pitch</span>
+              <div class="axis-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="4.5" width="6" height="15" rx="1.4"></rect>
+                  <line x1="12" y1="0.8" x2="12" y2="3.6"></line>
+                  <polyline points="10.4,2.3 12,0.8 13.6,2.3"></polyline>
+                  <line x1="12" y1="20.4" x2="12" y2="23.2"></line>
+                  <polyline points="10.4,21.7 12,23.2 13.6,21.7"></polyline>
+                </svg>
+              </div>
+              <div class="axis-text">
+                <span class="axis-name">Pitch</span>
+                <span class="axis-hint">tilt up/down</span>
+              </div>
               <span id="pitchValue" class="axis-value">0.0°</span>
             </div>
             <div class="axis-card" data-axis="yaw">
-              <span class="axis-name">Yaw</span>
+              <div class="axis-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="7" width="6" height="10" rx="1.4"></rect>
+                  <path d="M6.2 9.4A6.2 6.2 0 0 1 9.8 5"></path>
+                  <path d="M17.8 14.6A6.2 6.2 0 0 1 14.2 19"></path>
+                  <polyline points="9.4,3.3 9.8,5 8,5.5"></polyline>
+                  <polyline points="14.6,20.7 14.2,19 16,18.5"></polyline>
+                </svg>
+              </div>
+              <div class="axis-text">
+                <span class="axis-name">Yaw</span>
+                <span class="axis-hint">turn left/right</span>
+              </div>
               <span id="yawValue" class="axis-value">0.0°</span>
             </div>
           </div>
