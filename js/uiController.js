@@ -27,6 +27,7 @@ import {
 import {
   SensorKind,
   SensorStatus,
+  isKindSupported,
   preferredKind,
   subscribe,
 } from './sensors.js';
@@ -75,8 +76,9 @@ export function initUiController() {
   let latestForRender = null;
   let stabilityBuffer = []; // [{ t: DOMHighResTimeStamp, q: Quaternion }], newest last
   let isStable = false;
+  let kind = preferredKind(); // RELATIVE preferred over ABSOLUTE when both exist
 
-  const kind = preferredKind(); // RELATIVE preferred over ABSOLUTE when both exist
+  const bothKindsSupported = isKindSupported(SensorKind.RELATIVE) && isKindSupported(SensorKind.ABSOLUTE);
 
   function setStatusBadge(nextStatus) {
     dom.sensorStatusBadge.dataset.status = nextStatus;
@@ -84,6 +86,32 @@ export function initUiController() {
       ? ` (${SENSOR_KIND_LABELS[kind]})`
       : '';
     dom.sensorStatusBadge.textContent = (STATUS_LABELS[nextStatus] ?? 'Sensors: unknown') + kindSuffix;
+  }
+
+  function updateSensorKindToggleUi() {
+    if (!bothKindsSupported) return;
+    dom.sensorKindRelativeBtn.classList.toggle('active', kind === SensorKind.RELATIVE);
+    dom.sensorKindAbsoluteBtn.classList.toggle('active', kind === SensorKind.ABSOLUTE);
+  }
+
+  function switchKind(nextKind) {
+    if (nextKind === kind || !isKindSupported(nextKind)) return;
+    unsubscribe?.();
+    unsubscribe = null;
+    kind = nextKind;
+    // Different sensor kinds have unrelated internal reference frames
+    // (e.g. RelativeOrientationSensor's yaw zero-point is arbitrary and
+    // tied to when it started) — a reference captured under one is
+    // meaningless under the other, so switching always requires a fresh
+    // capture.
+    referenceQuaternion = null;
+    smoothedQuaternion = null;
+    stabilityBuffer = [];
+    isStable = false;
+    updateStabilityUi();
+    updateSensorKindToggleUi();
+    handleStatusChange(SensorStatus.PERMISSION_REQUIRED);
+    startSensors();
   }
 
   function showOnly(sectionToShow) {
@@ -219,6 +247,13 @@ export function initUiController() {
   dom.setReferenceBtn.textContent = SETTLING_LABEL;
   dom.setReferenceBtn.classList.add('is-settling');
 
+  if (bothKindsSupported) {
+    dom.sensorKindToggle.classList.remove('d-none');
+    dom.sensorKindRelativeBtn.addEventListener('click', () => switchKind(SensorKind.RELATIVE));
+    dom.sensorKindAbsoluteBtn.addEventListener('click', () => switchKind(SensorKind.ABSOLUTE));
+    updateSensorKindToggleUi();
+  }
+
   if (!kind) {
     handleStatusChange(SensorStatus.UNSUPPORTED);
     return;
@@ -241,6 +276,9 @@ function relativeOrientation(currentQuaternion, referenceQuaternion) {
 function queryDom() {
   return {
     sensorStatusBadge: document.getElementById('sensorStatusBadge'),
+    sensorKindToggle: document.getElementById('sensorKindToggle'),
+    sensorKindRelativeBtn: document.getElementById('sensorKindRelativeBtn'),
+    sensorKindAbsoluteBtn: document.getElementById('sensorKindAbsoluteBtn'),
     permissionPrompt: document.getElementById('permissionPrompt'),
     requestPermissionBtn: document.getElementById('requestPermissionBtn'),
     unsupportedNotice: document.getElementById('unsupportedNotice'),

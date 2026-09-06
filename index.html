@@ -28,6 +28,10 @@
         <span id="sensorStatusBadge" class="badge status-badge" data-status="unknown">Sensors: coming soon</span>
       </div>
       <div class="d-flex align-items-center gap-2">
+        <div id="sensorKindToggle" class="btn-group btn-group-sm d-none" role="group" aria-label="Orientation sensor">
+          <button id="sensorKindRelativeBtn" type="button" class="btn btn-outline-secondary" data-kind="relative">Relative</button>
+          <button id="sensorKindAbsoluteBtn" type="button" class="btn btn-outline-secondary" data-kind="absolute">Absolute</button>
+        </div>
         <button id="helpBtn" type="button" class="btn btn-icon" aria-label="Help">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
         </button>
