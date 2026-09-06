@@ -14,6 +14,18 @@ import { initTheme, toggleTheme } from './theme.js';
 import { initUiController } from './uiController.js';
 import { loadHelpContent } from './helpPage.js';
 
+/**
+ * The header menu uses `data-bs-auto-close="outside"` (see index.html)
+ * so the sensor-kind toggle inside it can be clicked repeatedly without
+ * the menu snapping shut. Help and theme are one-shot actions instead,
+ * so they close it explicitly for a tidier feel.
+ */
+function closeAppMenu() {
+  const menuBtnEl = document.getElementById('menuBtn');
+  if (!menuBtnEl || !window.bootstrap) return;
+  window.bootstrap.Dropdown.getInstance(menuBtnEl)?.hide();
+}
+
 function initHelpModal() {
   const helpBtn = document.getElementById('helpBtn');
   const helpModalEl = document.getElementById('helpModal');
@@ -22,6 +34,7 @@ function initHelpModal() {
 
   const modal = new window.bootstrap.Modal(helpModalEl);
   helpBtn.addEventListener('click', () => {
+    closeAppMenu();
     modal.show();
     loadHelpContent(helpContentEl);
   });
@@ -31,7 +44,10 @@ function init() {
   initTheme();
 
   const themeToggleBtn = document.getElementById('themeToggleBtn');
-  themeToggleBtn?.addEventListener('click', toggleTheme);
+  themeToggleBtn?.addEventListener('click', () => {
+    toggleTheme();
+    closeAppMenu();
+  });
 
   initHelpModal();
   initUiController();

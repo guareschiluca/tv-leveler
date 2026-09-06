@@ -81,11 +81,16 @@ export function initUiController() {
   const bothKindsSupported = isKindSupported(SensorKind.RELATIVE) && isKindSupported(SensorKind.ABSOLUTE);
 
   function setStatusBadge(nextStatus) {
-    dom.sensorStatusBadge.dataset.status = nextStatus;
     const kindSuffix = nextStatus === SensorStatus.OK && kind
       ? ` (${SENSOR_KIND_LABELS[kind]})`
       : '';
-    dom.sensorStatusBadge.textContent = (STATUS_LABELS[nextStatus] ?? 'Sensors: unknown') + kindSuffix;
+    const label = (STATUS_LABELS[nextStatus] ?? 'Sensors: unknown') + kindSuffix;
+
+    // The header only shows a small colored dot (title attribute covers
+    // hover/long-press); the full sentence lives in the menu instead.
+    dom.sensorStatusDot.dataset.status = nextStatus;
+    dom.sensorStatusDot.title = label;
+    dom.sensorStatusLabel.textContent = label;
   }
 
   function updateSensorKindToggleUi() {
@@ -258,7 +263,7 @@ export function initUiController() {
   showCaptureSlot(); // starts full-screen, pre-capture
 
   if (bothKindsSupported) {
-    dom.sensorKindToggle.classList.remove('d-none');
+    dom.sensorKindMenuItem.classList.remove('d-none');
     dom.sensorKindRelativeBtn.addEventListener('click', () => switchKind(SensorKind.RELATIVE));
     dom.sensorKindAbsoluteBtn.addEventListener('click', () => switchKind(SensorKind.ABSOLUTE));
     updateSensorKindToggleUi();
@@ -285,8 +290,9 @@ function relativeOrientation(currentQuaternion, referenceQuaternion) {
 
 function queryDom() {
   return {
-    sensorStatusBadge: document.getElementById('sensorStatusBadge'),
-    sensorKindToggle: document.getElementById('sensorKindToggle'),
+    sensorStatusDot: document.getElementById('sensorStatusDot'),
+    sensorStatusLabel: document.getElementById('sensorStatusLabel'),
+    sensorKindMenuItem: document.getElementById('sensorKindMenuItem'),
     sensorKindRelativeBtn: document.getElementById('sensorKindRelativeBtn'),
     sensorKindAbsoluteBtn: document.getElementById('sensorKindAbsoluteBtn'),
     permissionPrompt: document.getElementById('permissionPrompt'),
