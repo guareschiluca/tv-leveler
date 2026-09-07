@@ -18,9 +18,7 @@
 import { isNearZero, isLevel } from './orientationMath.js';
 import {
   quaternionToEuler,
-  quaternionMultiply,
-  quaternionConjugate,
-  quaternionNormalize,
+  relativeQuaternion,
   quaternionSlerp,
   maxAngularSpreadDeg,
 } from './quaternionMath.js';
@@ -306,13 +304,14 @@ export function initUiController() {
 /**
  * Relative orientation of `current` with respect to `reference`, both
  * already-computed quaternions (avoids re-deriving them from Euler
- * angles on every animation frame).
+ * angles on every animation frame). Delegates the actual math to
+ * js/quaternionMath.js's relativeQuaternion() rather than re-deriving
+ * it here — that function's docstring has a detailed explanation of
+ * why the multiplication order matters (a previous version of this
+ * function had it backwards; see ReadMe.md changelog).
  */
 function relativeOrientation(currentQuaternion, referenceQuaternion) {
-  const relative = quaternionNormalize(
-    quaternionMultiply(currentQuaternion, quaternionConjugate(referenceQuaternion)),
-  );
-  return quaternionToEuler(relative);
+  return quaternionToEuler(relativeQuaternion(currentQuaternion, referenceQuaternion));
 }
 
 function queryDom() {

@@ -86,6 +86,21 @@ delta display, capture-first UX, a sensor-kind toggle where applicable,
 and installable/offline PWA support.
 
 **Recent changes:**
+- **Fix: pitch/roll cross-talk in the delta readout.** Reported live: tilting
+  the phone in pitch (against a reference that wasn't itself perfectly
+  level) visibly moved the displayed roll too, and vice versa. Root
+  cause was the order of a quaternion multiplication when computing
+  "current relative to reference" — `current * conjugate(reference)`
+  decomposes the delta against the fixed *world* frame's axes, while
+  the physically correct `conjugate(reference) * current` decomposes it
+  against *reference's own* axes (the ones that were roll/pitch/yaw
+  when you captured it against the wall). The two only agree when the
+  reference itself has zero roll/pitch — which every existing test
+  happened to use — so this shipped unnoticed until it was visible on a
+  real, imperfectly-level wall. Also deduplicated: the live UI had its
+  own hand-rolled copy of this same math (with the same bug) instead of
+  using the tested module, which is exactly how a fix to one didn't
+  catch the other; both now share one implementation.
 - **Installable PWA:** the app now has a manifest, an app icon (home
   screen + favicon), and a service worker that caches the app shell for
   offline use after the first visit. An **Install app** option appears

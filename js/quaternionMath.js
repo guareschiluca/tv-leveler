@@ -186,6 +186,36 @@ export function quaternionSlerp(a, b, t) {
 }
 
 /**
+ * The rotation of `currentQ` relative to `referenceQ`, expressed using
+ * reference's OWN local/body-frame axes — i.e. what "roll/pitch/yaw
+ * since the reference was captured" needs to mean physically for this
+ * app: the rotation you'd have to apply, using the axes the device had
+ * *at the moment the reference was captured*, to go from reference to
+ * current.
+ *
+ * Multiplication ORDER MATTERS here and is easy to get backwards (an
+ * earlier version of this app did — see ReadMe.md changelog):
+ * conjugate(reference) * current gives the delta in reference's local
+ * frame, which is what we want. The reverse order, current *
+ * conjugate(reference), gives a DIFFERENT quantity: the same physical
+ * rotation decomposed against the fixed WORLD frame's axes instead of
+ * reference's own axes. The two only agree when reference itself has
+ * zero roll/pitch (already perfectly aligned with the world frame) —
+ * which is essentially never true for an arbitrary real wall — so the
+ * wrong order silently leaks roll into the displayed pitch/yaw (and
+ * vice versa) for any non-trivial reference, without ever failing a
+ * test built around an identity reference.
+ * @param {Quaternion} currentQ
+ * @param {Quaternion} referenceQ
+ * @returns {Quaternion}
+ */
+export function relativeQuaternion(currentQ, referenceQ) {
+  return quaternionNormalize(
+    quaternionMultiply(quaternionConjugate(referenceQ), currentQ),
+  );
+}
+
+/**
  * Computes the relative orientation of `current` with respect to
  * `reference`, as {roll, pitch, yaw} degrees — the robust replacement
  * for orientationMath.js's per-axis computeDelta(). Correct even when
@@ -198,10 +228,7 @@ export function quaternionSlerp(a, b, t) {
 export function computeRelativeOrientation(current, reference) {
   const currentQ = eulerToQuaternion(current);
   const referenceQ = eulerToQuaternion(reference);
-  const relativeQ = quaternionNormalize(
-    quaternionMultiply(currentQ, quaternionConjugate(referenceQ)),
-  );
-  return quaternionToEuler(relativeQ);
+  return quaternionToEuler(relativeQuaternion(currentQ, referenceQ));
 }
 
 /**
