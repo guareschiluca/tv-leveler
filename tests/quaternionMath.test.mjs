@@ -21,6 +21,7 @@ import {
   rotationAngleDeg,
   angularDistanceDeg,
   maxAngularSpreadDeg,
+  relativeQuaternion,
   computeRelativeOrientation,
 } from '../js/quaternionMath.js';
 
@@ -117,6 +118,65 @@ test('computeRelativeOrientation regression: near pitch=+-90, a small true rotat
   assert.ok(Math.abs(delta.roll) < 5, `roll delta too large: ${delta.roll}`);
   assert.ok(Math.abs(delta.pitch) < 5, `pitch delta too large: ${delta.pitch}`);
   assert.ok(Math.abs(delta.yaw) < 5, `yaw delta too large: ${delta.yaw}`);
+});
+
+test('regression: a pure local-axis rotation against a tilted reference does not leak into the other two axes', () => {
+  // Reproduces a real bug: computeRelativeOrientation used to multiply
+  // quaternions in the wrong order (current * conjugate(reference)
+  // instead of conjugate(reference) * current). Both orders agree when
+  // reference is the identity orientation — which is exactly the only
+  // case the pre-existing tests happened to check — so this shipped
+  // unnoticed until it was reported live: tilting the phone in pitch
+  // against a non-level reference visibly moved the displayed roll too.
+  //
+  // Here `reference` stands in for an arbitrary, imperfectly-aligned
+  // real wall (non-zero roll AND pitch), and `current` is built by
+  // composing an *exact* single-axis rotation onto it in reference's
+  // own local frame — physically, someone holding the phone flat
+  // against that same wall and only ever moving it about one axis.
+  // Whichever axis moved should be the only one that reads non-zero.
+  const reference = { roll: 30, pitch: 20, yaw: -15 };
+  const referenceQ = eulerToQuaternion(reference);
+
+  const cases = [
+    { axis: 'roll', localRotation: { roll: 15, pitch: 0, yaw: 0 } },
+    { axis: 'pitch', localRotation: { roll: 0, pitch: 15, yaw: 0 } },
+    { axis: 'yaw', localRotation: { roll: 0, pitch: 0, yaw: 15 } },
+  ];
+
+  for (const { axis, localRotation } of cases) {
+    const currentQ = quaternionMultiply(referenceQ, eulerToQuaternion(localRotation));
+    const current = quaternionToEuler(currentQ);
+
+    const delta = computeRelativeOrientation(current, reference);
+
+    for (const otherAxis of ['roll', 'pitch', 'yaw']) {
+      const expected = otherAxis === axis ? 15 : 0;
+      assert.ok(
+        Math.abs(delta[otherAxis] - expected) < 1e-6,
+        `pure ${axis} rotation leaked into ${otherAxis}: expected ${expected}, got ${delta[otherAxis]}`,
+      );
+    }
+  }
+});
+
+test('relativeQuaternion multiplication order matters: only conjugate(reference)*current gives the local-frame delta', () => {
+  // Direct proof, at the quaternion level, that the two multiplication
+  // orders genuinely diverge for a non-identity reference (and are not
+  // just two equally-valid ways of writing the same result).
+  const referenceQ = eulerToQuaternion({ roll: 30, pitch: 20, yaw: 0 });
+  const currentQ = quaternionMultiply(referenceQ, eulerToQuaternion({ roll: 15, pitch: 0, yaw: 0 }));
+
+  const correctOrder = quaternionToEuler(relativeQuaternion(currentQ, referenceQ));
+  const wrongOrder = quaternionToEuler(
+    quaternionNormalize(quaternionMultiply(currentQ, quaternionConjugate(referenceQ))),
+  );
+
+  assertOrientationClose(correctOrder, { roll: 15, pitch: 0, yaw: 0 }, 1e-6);
+  assert.ok(
+    Math.abs(wrongOrder.pitch) > 0.5 || Math.abs(wrongOrder.yaw) > 0.5,
+    'expected the reversed multiplication order to visibly leak into pitch/yaw for this non-identity reference',
+  );
 });
 
 test('regression: quaternionToEuler axis convention matches the Generic Sensor API (not swapped)', () => {
